@@ -1,0 +1,46 @@
+forum:
+  key: "example-forum"
+  guild_id: 123456789012345678
+  channel_id: 234567890123456789
+  sync:
+    interval_minutes: 10
+    dry_run_default: true
+  sheets:
+    configured: false
+    enabled: false
+    auto_create: true
+    spreadsheet_id:
+    owner_email: "owner@example.com"
+    editor_emails:
+      - "owner@example.com"
+    master_sheet_name: "Master"
+    progress_sheet_name: "Progress"
+  automation:
+    enabled: false
+    auto_comment: false
+    auto_tag: false
+    auto_archive: false
+    auto_lock: false
+
+states:
+  duplicate:
+    tags: ["重複"]
+  in_progress:
+    tags: ["対応中（Wiki転記不要）"]
+  wiki_exported:
+    tags: ["Wiki転記済み"]
+  closed:
+    tags: ["解決済み"]
+
+actions:
+  when_duplicate:
+    add_comment: "この報告は重複として記録されました。"
+  when_in_progress:
+    add_comment: "この報告は対応中として記録されました。"
+  when_wiki_exported:
+    add_tags: ["解決済み"]
+    archive: true
+  when_closed:
+    add_tags: ["解決済み"]
+    archive: true
+    lock: true

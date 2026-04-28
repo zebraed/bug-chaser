@@ -2,18 +2,37 @@ from __future__ import annotations
 
 from pathlib import Path
 
-from pydantic import Field
+from pydantic import Field, field_validator
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
 
 class AppSettings(BaseSettings):
     discord_token: str = Field(alias="BUG_CHASER_DISCORD_TOKEN")
-    config_dir: Path = Field(default=Path("config/forums"), alias="BUG_CHASER_CONFIG_DIR")
-    database_path: Path = Field(default=Path("data/bug_chaser.sqlite3"), alias="BUG_CHASER_DB_PATH")
+    config_dir: Path = Field(
+        default=Path("config/forums"),
+        alias="BUG_CHASER_CONFIG_DIR",
+    )
+    database_path: Path = Field(
+        default=Path("data/bug_chaser.sqlite3"),
+        alias="BUG_CHASER_DB_PATH",
+    )
     google_service_account_file: Path | None = Field(
         default=None,
         alias="BUG_CHASER_GOOGLE_SERVICE_ACCOUNT_FILE",
     )
-    command_guild_id: int | None = Field(default=None, alias="BUG_CHASER_COMMAND_GUILD_ID")
+    command_guild_id: int | None = Field(
+        default=None,
+        alias="BUG_CHASER_COMMAND_GUILD_ID",
+    )
 
     model_config = SettingsConfigDict(env_file=".env", extra="ignore")
+
+    @field_validator("google_service_account_file", mode="before")
+    @classmethod
+    def empty_google_service_account_file_is_none(
+        cls,
+        value: object,
+    ) -> object:
+        if value == "":
+            return None
+        return value

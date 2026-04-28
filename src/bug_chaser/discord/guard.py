@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import asyncio
 import logging
 
 import discord
@@ -11,6 +12,9 @@ logger = logging.getLogger(__name__)
 
 class RobotGuardThreadManager:
     """Applies forum management actions when automation is enabled."""
+
+    def __init__(self, archive_delay_seconds: float = 1.0) -> None:
+        self._archive_delay_seconds = archive_delay_seconds
 
     async def apply_action(
         self,
@@ -26,21 +30,42 @@ class RobotGuardThreadManager:
         if action is None:
             return
 
+        edit_kwargs: dict[str, object] = {}
         if automation.auto_tag:
-            await self._apply_tags(thread, action)
+            applied_tags = self._desired_tags(
+                thread,
+                action,
+            )
+            if applied_tags is not None:
+                edit_kwargs["applied_tags"] = applied_tags
+        final_edit_kwargs: dict[str, object] = {}
+        if automation.auto_archive and action.archive:
+            final_edit_kwargs["archived"] = True
+        if automation.auto_lock and action.lock:
+            final_edit_kwargs["locked"] = True
+        if action.reopen:
+            final_edit_kwargs["archived"] = False
+            final_edit_kwargs["locked"] = False
+
+        sent_comment = False
         if automation.auto_comment and action.add_comment:
             await thread.send(action.add_comment)
-        if automation.auto_archive and action.archive:
-            await thread.edit(archived=True)
-        if automation.auto_lock and action.lock:
-            await thread.edit(locked=True)
-        if action.reopen:
-            await thread.edit(archived=False, locked=False)
+            sent_comment = True
+        if edit_kwargs:
+            await thread.edit(**edit_kwargs)
+        if sent_comment and final_edit_kwargs.get("archived") is True:
+            await asyncio.sleep(self._archive_delay_seconds)
+        if final_edit_kwargs:
+            await thread.edit(**final_edit_kwargs)
 
-    async def _apply_tags(self, thread: discord.Thread, action: ActionRule) -> None:
+    def _desired_tags(
+        self,
+        thread: discord.Thread,
+        action: ActionRule,
+    ) -> list[discord.ForumTag] | None:
         parent = thread.parent
         if not isinstance(parent, discord.ForumChannel):
-            return
+            return None
 
         current = {tag.name: tag for tag in thread.applied_tags}
         available = {tag.name: tag for tag in parent.available_tags}
@@ -57,4 +82,8 @@ class RobotGuardThreadManager:
                     thread.id,
                     tag_name,
                 )
-        await thread.edit(applied_tags=list(current.values()))
+
+        desired = list(current.values())
+        if {tag.name for tag in desired} == {tag.name for tag in thread.applied_tags}:
+            return None
+        return desired

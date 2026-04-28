@@ -30,6 +30,17 @@ cp .env.example .env
 
 `.env` に Discord Bot token などを設定してください。
 
+## 環境変数
+
+`.env.example` をコピーして `.env` を作成し、ローカル環境に合わせて値を設定します。
+
+
+- `BUG_CHASER_DISCORD_TOKEN`: Discord Developer Portal で発行した Bot token です。
+- `BUG_CHASER_CONFIG_DIR`: フォーラム別 YAML を置くディレクトリです。通常は `config/forums` のままで使います。
+- `BUG_CHASER_DB_PATH`: 同期結果を保存する SQLite データベースのパスです。親ディレクトリは起動時に自動作成されます。
+- `BUG_CHASER_GOOGLE_SERVICE_ACCOUNT_FILE`: Google Sheets 連携を使う場合に、Service Account 認証 JSON のパスを指定します。Sheets 連携を使わない場合は空で構いません。
+- `BUG_CHASER_COMMAND_GUILD_ID`: スラッシュコマンドを即時反映したいDiscordサーバーの Guild IDです。未設定の場合はグローバルコマンドとして同期され、反映に時間がかかる場合があります。
+
 ## Google Sheets 連携
 
 Sheets 連携は Service Account 方式です。
@@ -70,7 +81,33 @@ forum:
     auto_tag: false
     auto_archive: false
     auto_lock: false
+
+states:
+  duplicate:
+    tags: ["重複"]
+  in_progress:
+    tags: ["対応中（Wiki転記不要）"]
+  wiki_exported:
+    tags: ["Wiki転記済み"]
+  closed:
+    tags: ["解決済み"]
+
+actions:
+  when_duplicate:
+    add_comment: "この報告は重複として記録されました。"
+    remove_tags: ["対応中（Wiki転記不要）", "Wiki転記済み", "解決済み"]
+    archive: true
+  when_in_progress:
+    add_comment: "この報告は対応中として記録されました。"
+    remove_tags: ["重複", "Wiki転記済み", "解決済み"]
+  when_closed:
+    add_comment: "この報告は解決済みとして記録されました。"
+    remove_tags: ["重複", "対応中（Wiki転記不要）", "Wiki転記済み"]
+    add_tags: ["解決済み"]
+    archive: true
 ```
+
+`actions` では、`add_tags` で追加するタグ、`remove_tags` で外すタグを指定できます。状態タグを排他的に扱いたい場合は、遷移先以外の状態タグを `remove_tags` に書いてください。
 
 ## 起動
 

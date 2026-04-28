@@ -3,6 +3,7 @@ from __future__ import annotations
 import discord
 from discord import app_commands
 
+from bug_chaser.config.forum import ForumConfig
 from bug_chaser.config.registry import ForumRegistry
 from bug_chaser.core.models import AutomationFeature
 from bug_chaser.sheets.provisioner import SpreadsheetProvisioner
@@ -137,7 +138,12 @@ class MothmanCommandHandler:
     async def status(self, interaction: discord.Interaction) -> None:
         lines = [
             f"{config.forum.key}: channel={config.forum.channel_id}, "
-            f"sheets={config.forum.sheets.enabled}, automation={config.forum.automation.enabled}"
+            f"sheets={config.forum.sheets.enabled}, "
+            f"automation={config.forum.automation.enabled}, "
+            f"comment={config.forum.automation.auto_comment}, "
+            f"tag={config.forum.automation.auto_tag}, "
+            f"archive={config.forum.automation.auto_archive}, "
+            f"lock={config.forum.automation.auto_lock}"
             for config in self._registry.all
         ]
         await interaction.response.send_message("\n".join(lines), ephemeral=True)
@@ -185,7 +191,7 @@ class MothmanCommandHandler:
         feature: AutomationFeature = AutomationFeature.ALL,
     ) -> None:
         config = self._registry.get_by_channel_id(forum_channel.id)
-        config.forum.automation.enabled = True
+        self._set_automation_feature(config, feature, True)
         self._store.set_automation_enabled(config.forum.key, feature, True)
         await interaction.response.send_message(
             f"Automation enabled: {feature.value}",
@@ -199,8 +205,7 @@ class MothmanCommandHandler:
         feature: AutomationFeature = AutomationFeature.ALL,
     ) -> None:
         config = self._registry.get_by_channel_id(forum_channel.id)
-        if feature == AutomationFeature.ALL:
-            config.forum.automation.enabled = False
+        self._set_automation_feature(config, feature, False)
         self._store.set_automation_enabled(config.forum.key, feature, False)
         await interaction.response.send_message(
             f"Automation disabled: {feature.value}",
@@ -237,3 +242,28 @@ class MothmanCommandHandler:
         normalized = thread_url_or_id.rstrip("/")
         last_part = normalized.rsplit("/", maxsplit=1)[-1]
         return int(last_part)
+
+    def _set_automation_feature(
+        self,
+        config: ForumConfig,
+        feature: AutomationFeature,
+        enabled: bool,
+    ) -> None:
+        automation = config.forum.automation
+        if feature == AutomationFeature.ALL:
+            automation.enabled = enabled
+            automation.auto_comment = enabled
+            automation.auto_tag = enabled
+            automation.auto_archive = enabled
+            automation.auto_lock = enabled
+            return
+
+        automation.enabled = enabled or automation.enabled
+        setattr(automation, feature.value, enabled)
+        if not (
+            automation.auto_comment
+            or automation.auto_tag
+            or automation.auto_archive
+            or automation.auto_lock
+        ):
+            automation.enabled = False

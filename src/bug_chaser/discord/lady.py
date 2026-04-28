@@ -7,7 +7,7 @@ from discord import app_commands
 
 from bug_chaser.config.forum import ForumConfig
 from bug_chaser.config.registry import ForumRegistry
-from bug_chaser.core.models import ThreadStatus
+from bug_chaser.core.models import ThreadSnapshot, ThreadStatus
 from bug_chaser.core.settings import AppSettings
 from bug_chaser.discord.bird import ShadowBirdCollector
 from bug_chaser.discord.gloop import GloopSnapshotBuilder
@@ -22,6 +22,50 @@ from bug_chaser.sync.scheduler import BugChaserScheduler
 from bug_chaser.sync.service import SyncService
 
 logger = logging.getLogger(__name__)
+
+
+ACTION_BY_STATUS = {
+    ThreadStatus.DUPLICATE: "when_duplicate",
+    ThreadStatus.IN_PROGRESS: "when_in_progress",
+    ThreadStatus.WIKI_EXPORTED: "when_wiki_exported",
+    ThreadStatus.CLOSED: "when_closed",
+}
+
+ACTION_BY_STATE_NAME = {
+    "duplicate": "when_duplicate",
+    "in_progress": "when_in_progress",
+    "wiki_exported": "when_wiki_exported",
+    "closed": "when_closed",
+}
+
+STATE_MATCH_ORDER = ("duplicate", "wiki_exported", "closed", "in_progress")
+
+
+def action_name_for_status(status: ThreadStatus) -> str | None:
+    return ACTION_BY_STATUS.get(status)
+
+
+def action_name_for_added_tags(
+    config: ForumConfig,
+    before_tags: tuple[str, ...],
+    after_tags: tuple[str, ...],
+) -> str | None:
+    added_tags = set(after_tags) - set(before_tags)
+    if not added_tags:
+        return None
+
+    for state_name in STATE_MATCH_ORDER:
+        rule = config.states.get(state_name)
+        if rule is not None and any(tag in added_tags for tag in rule.tags):
+            return ACTION_BY_STATE_NAME[state_name]
+    return None
+
+
+def should_apply_status_action(
+    before_status: ThreadStatus,
+    after_status: ThreadStatus,
+) -> bool:
+    return before_status != after_status and action_name_for_status(after_status) is not None
 
 
 class ShadowLadyGateway(discord.Client):
@@ -87,29 +131,58 @@ class ShadowLadyGateway(discord.Client):
         logger.info("bug-chaser logged in as %s", self.user)
 
     async def on_thread_update(self, before: discord.Thread, after: discord.Thread) -> None:
-        await self._maybe_apply_automation(after)
+        await self._maybe_apply_automation(before, after)
 
-    async def _maybe_apply_automation(self, thread: discord.Thread) -> None:
-        if thread.parent_id is None:
+    async def _maybe_apply_automation(
+        self,
+        before: discord.Thread,
+        after: discord.Thread,
+    ) -> None:
+        if after.parent_id is None:
             return
         try:
-            config = self._registry.get_by_channel_id(thread.parent_id)
+            config = self._registry.get_by_channel_id(after.parent_id)
         except KeyError:
             return
 
-        snapshot = await self._snapshot_builder.build(thread)
-        status = self._rule_engine.evaluate(config, snapshot)
-        action_name = self._action_name_for_status(status)
-        if action_name:
-            await self._thread_manager.apply_action(config, thread, action_name)
+        before_snapshot = self._build_thread_update_snapshot(before)
+        after_snapshot = self._build_thread_update_snapshot(after)
+        action_name = action_name_for_added_tags(
+            config,
+            before_snapshot.tags,
+            after_snapshot.tags,
+        )
+        if action_name is None:
+            before_status = self._rule_engine.evaluate(config, before_snapshot)
+            after_status = self._rule_engine.evaluate(config, after_snapshot)
+            if not should_apply_status_action(before_status, after_status):
+                return
+            action_name = action_name_for_status(after_status)
 
-    def _action_name_for_status(self, status: ThreadStatus) -> str | None:
-        return {
-            ThreadStatus.DUPLICATE: "when_duplicate",
-            ThreadStatus.IN_PROGRESS: "when_in_progress",
-            ThreadStatus.WIKI_EXPORTED: "when_wiki_exported",
-            ThreadStatus.CLOSED: "when_closed",
-        }.get(status)
+        if action_name:
+            await self._thread_manager.apply_action(config, after, action_name)
+
+    def _build_thread_update_snapshot(self, thread: discord.Thread) -> ThreadSnapshot:
+        parent = thread.parent
+        available_tags = (
+            tuple(tag.name for tag in parent.available_tags)
+            if isinstance(parent, discord.ForumChannel)
+            else None
+        )
+        return ThreadSnapshot(
+            thread_id=thread.id,
+            forum_channel_id=thread.parent_id or 0,
+            title=thread.name,
+            body="",
+            author_id=None,
+            author_name=None,
+            created_at=thread.created_at,
+            tags=tuple(tag.name for tag in thread.applied_tags),
+            available_tags=available_tags,
+            reply_count=max((thread.message_count or 0) - 1, 0),
+            archived=thread.archived,
+            locked=thread.locked,
+        )
 
     def _build_google_clients(self, settings: AppSettings) -> GoogleClients | None:
         if settings.google_service_account_file is None:

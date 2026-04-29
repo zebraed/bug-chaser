@@ -24,23 +24,23 @@ forum:
 
 states:
   duplicate:
-    tags: ["重複"]
+    tags: ["Duplicate"]
   in_progress:
-    tags: ["対応中（Wiki転記不要）"]
+    tags: ["In Progress"]
   wiki_exported:
-    tags: ["Wiki転記済み"]
+    tags: ["Wiki Exported"]
   closed:
-    tags: ["解決済み"]
+    tags: ["Closed"]
 
 actions:
   when_duplicate:
-    add_comment: "この報告は重複として記録されました。"
+    add_comment: "This report has been recorded as a duplicate."
   when_in_progress:
-    add_comment: "この報告は対応中として記録されました。"
+    add_comment: "This report has been recorded as in progress."
   when_wiki_exported:
-    add_tags: ["解決済み"]
+    add_tags: ["Closed"]
     archive: true
   when_closed:
-    add_tags: ["解決済み"]
+    add_tags: ["Closed"]
     archive: true
     lock: true

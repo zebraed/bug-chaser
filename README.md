@@ -1,31 +1,36 @@
 # bug-chaser
 
-Discord のフォーラム投稿をスレッドとして監視し、バグ報告の取得、状態判定、管理補助、任意の Google Sheets 連携を行う Bot です。
+Discordのフォーラム投稿をスレッドとして監視し、報告の取得、状態判定、管理補助、任意の Google Sheets 連携を行うDiscord-Botです。
 
-## 主な方針
+## 主な機能
 
-- 設定はフォーラムごとの YAML に集約します。
-- Google Sheets 連携はオプションです。未設定でも Discord 側の取得、状態判定、DB 保存、コマンドは動作します。
-- Sheets 連携を有効にする場合、1フォーラムチャンネルにつき 1つのスプレッドシートを Bot が作成します。
-- 1枚目のシートは Bot 管理、2枚目のシートは人間の進捗管理用です。
-- 状態判定はタグ優先です。リアクションによる状態管理は初期状態では使いません。
+- フォーラムチャンネル内のスレッドを収集し、タイトル・本文・投稿者・タグ・リアクション・返信数などをまとめます。
+- フォーラムごとの YAML で監視対象、状態ルール、自動アクション、任意の Sheets 連携を設定します。
+- タグの排他制御を可能にします。
+- 同期結果を SQLite に保存します。
+- `/bugchaser` スラッシュコマンドで同期の手動実行や Sheets・自動処理のオンオフができます。
+- Google Sheets 連携は任意です。有効にするとフォーラムごとにスプレッドシートを用意でき、Bot が 1枚目にマスターデータを転記し、2枚目は進捗管理用として利用できます。
 
 ## セットアップ
 
-```powershell
-python -m venv .venv
-.\.venv\Scripts\Activate.ps1
-python -m pip install -e ".[dev]"
-Copy-Item .env.example .env
-```
 
-Linux/macOS の場合:
+Linux/macOS:
 
 ```bash
 python -m venv .venv
 . .venv/bin/activate
 python -m pip install -e ".[dev]"
 cp .env.example .env
+```
+
+
+Windows
+
+```powershell
+python -m venv .venv
+.\.venv\Scripts\Activate.ps1
+python -m pip install -e ".[dev]"
+Copy-Item .env.example .env
 ```
 
 `.env` に Discord Bot token などを設定してください。
@@ -57,55 +62,7 @@ Sheets 連携は Service Account 方式です。
 
 `config/forums/example.yaml` を参考に、`config/forums/<forum_key>.yaml` を作成して編集します。
 
-```yaml
-forum:
-  key: "example-forum"
-  guild_id: 123456789012345678
-  channel_id: 234567890123456789
-  sync:
-    interval_minutes: 10
-    dry_run_default: true
-  sheets:
-    configured: false
-    enabled: false
-    auto_create: true
-    spreadsheet_id:
-    owner_email: "owner@example.com"
-    editor_emails:
-      - "owner@example.com"
-    master_sheet_name: "Master"
-    progress_sheet_name: "Progress"
-  automation:
-    enabled: false
-    auto_comment: false
-    auto_tag: false
-    auto_archive: false
-    auto_lock: false
-
-states:
-  duplicate:
-    tags: ["重複"]
-  in_progress:
-    tags: ["対応中（Wiki転記不要）"]
-  wiki_exported:
-    tags: ["Wiki転記済み"]
-  closed:
-    tags: ["解決済み"]
-
-actions:
-  when_duplicate:
-    add_comment: "この報告は重複として記録されました。"
-    remove_tags: ["対応中（Wiki転記不要）", "Wiki転記済み", "解決済み"]
-    archive: true
-  when_in_progress:
-    add_comment: "この報告は対応中として記録されました。"
-    remove_tags: ["重複", "Wiki転記済み", "解決済み"]
-  when_closed:
-    add_comment: "この報告は解決済みとして記録されました。"
-    remove_tags: ["重複", "対応中（Wiki転記不要）", "Wiki転記済み"]
-    add_tags: ["解決済み"]
-    archive: true
-```
+> 注意:`example.yaml` / `example.yml` は読み込みません。リポジトリ内のサンプル用です。
 
 `actions` では、`add_tags` で追加するタグ、`remove_tags` で外すタグを指定できます。状態タグを排他的に扱いたい場合は、遷移先以外の状態タグを `remove_tags` に書いてください。
 

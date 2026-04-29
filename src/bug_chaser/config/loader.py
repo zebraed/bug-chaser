@@ -6,6 +6,8 @@ import yaml
 
 from bug_chaser.config.forum import ForumConfig, LoadedForumConfig
 
+_EXAMPLE_TEMPLATE_FILENAMES = frozenset({"example.yaml", "example.yml"})
+
 
 class ForumConfigLoader:
     """Loads per-forum YAML files."""
@@ -20,8 +22,12 @@ class ForumConfigLoader:
 
         loaded: list[LoadedForumConfig] = []
         for path in sorted(self._config_dir.glob("*.yaml")):
+            if self._is_example_template(path):
+                continue
             loaded.append(self.load(path))
         for path in sorted(self._config_dir.glob("*.yml")):
+            if self._is_example_template(path):
+                continue
             loaded.append(self.load(path))
 
         if not loaded:
@@ -33,3 +39,8 @@ class ForumConfigLoader:
         with path.open("r", encoding="utf-8") as file:
             raw = yaml.safe_load(file) or {}
         return LoadedForumConfig(path=path, config=ForumConfig.model_validate(raw))
+
+    @staticmethod
+    def _is_example_template(path: Path) -> bool:
+        """Repository sample only; not loaded in production."""
+        return path.name.lower() in _EXAMPLE_TEMPLATE_FILENAMES

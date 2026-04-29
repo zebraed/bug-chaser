@@ -38,6 +38,7 @@ class MothmanCommandHandler:
             self.dry_run,
         )
         self.group.command(name="status", description="Show configured forum status.")(self.status)
+        self.group.command(name="fairy", description="Summon the fairy.")(self.fairy)
         self.group.command(name="export", description="Export configured forums to Sheets.")(
             self.export
         )
@@ -147,6 +148,10 @@ class MothmanCommandHandler:
             for config in self._registry.all
         ]
         await interaction.response.send_message("\n".join(lines), ephemeral=True)
+
+    async def fairy(self, interaction: discord.Interaction) -> None:
+        _msg = "うわぁーーーーーーーーーーーーーーーーーーーー！！！！！！！！！"
+        await interaction.response.send_message(_msg)
 
     async def sheets_on(
         self,

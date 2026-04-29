@@ -1,0 +1,4 @@
+{
+  "flake8.enabled": false,
+  "python.linting.flake8Enabled": false
+}

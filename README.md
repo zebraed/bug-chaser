@@ -108,3 +108,7 @@ python -m bug_chaser
 - `bug_chaser.sheets`: 任意の Google Sheets 連携
 - `bug_chaser.storage`: SQLite 永続化
 - `bug_chaser.sync`: 同期サービスとスケジューラ
+
+## ライセンス
+
+[MIT License](LICENSE)

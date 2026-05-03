@@ -3,10 +3,31 @@ from __future__ import annotations
 import logging
 
 from bug_chaser.config.bot_messages import load_bot_messages
+from bug_chaser.config.forum import ForumConfig
 from bug_chaser.config.loader import ForumConfigLoader
 from bug_chaser.core.settings import AppSettings
 from bug_chaser.discord.lady import ShadowLadyGateway
 from bug_chaser.storage.sqlite_store import SQLiteStore
+
+
+def _restore_runtime_flags(store: SQLiteStore, config: ForumConfig) -> None:
+    """Override YAML values with flags persisted via commands."""
+    flags = store.get_runtime_flags(config.forum.key)
+    if not flags:
+        return
+
+    if "sheets_enabled" in flags:
+        config.forum.sheets.enabled = flags["sheets_enabled"]
+    if "automation_enabled" in flags:
+        config.forum.automation.enabled = flags["automation_enabled"]
+    if "auto_comment" in flags:
+        config.forum.automation.auto_comment = flags["auto_comment"]
+    if "auto_tag" in flags:
+        config.forum.automation.auto_tag = flags["auto_tag"]
+    if "auto_archive" in flags:
+        config.forum.automation.auto_archive = flags["auto_archive"]
+    if "auto_lock" in flags:
+        config.forum.automation.auto_lock = flags["auto_lock"]
 
 
 def main() -> None:
@@ -22,6 +43,7 @@ def main() -> None:
     store.initialize()
     for config in configs:
         store.upsert_forum(config)
+        _restore_runtime_flags(store, config)
 
     bot_messages = load_bot_messages(settings)
     client = ShadowLadyGateway(

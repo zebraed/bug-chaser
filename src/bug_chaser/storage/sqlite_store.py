@@ -177,6 +177,38 @@ class SQLiteStore:
                 (forum_key, feature.value, int(enabled)),
             )
 
+    def get_runtime_flags(self, forum_key: str) -> dict[str, bool]:
+        """
+        Load persisted runtime flags for a forum.
+
+        Returns a dict with keys like ``sheets_enabled``, ``automation_enabled``,
+        ``auto_comment``, etc. Missing keys mean no override was saved.
+        """
+        result: dict[str, bool] = {}
+        with self._connect() as connection:
+            row = connection.execute(
+                """
+                SELECT sheets_enabled, automation_enabled
+                FROM forum_channels
+                WHERE forum_key = ?
+                """,
+                (forum_key,),
+            ).fetchone()
+            if row is not None:
+                result["sheets_enabled"] = bool(row[0])
+                result["automation_enabled"] = bool(row[1])
+
+            for feature_row in connection.execute(
+                """
+                SELECT feature, enabled
+                FROM feature_flags
+                WHERE forum_key = ?
+                """,
+                (forum_key,),
+            ):
+                result[feature_row[0]] = bool(feature_row[1])
+        return result
+
     def record_sync_run(
         self,
         forum_key: str,

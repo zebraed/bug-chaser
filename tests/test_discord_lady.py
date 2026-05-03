@@ -8,38 +8,25 @@ from bug_chaser.discord.lady import (
 
 
 def test_status_action_names() -> None:
-    assert action_name_for_status(ThreadStatus.DUPLICATE) == "when_duplicate"
-    assert (
-        action_name_for_status(ThreadStatus.IN_PROGRESS)
-        == "when_in_progress"
-    )
-    assert (
-        action_name_for_status(ThreadStatus.EXPORTED)
-        == "when_exported"
-    )
-    assert action_name_for_status(ThreadStatus.CLOSED) == "when_closed"
-    assert action_name_for_status(ThreadStatus.OPEN) is None
+    assert action_name_for_status("duplicate") == "when_duplicate"
+    assert action_name_for_status("in_progress") == "when_in_progress"
+    assert action_name_for_status("exported") == "when_exported"
+    assert action_name_for_status("closed") == "when_closed"
+    assert action_name_for_status("custom_state") == "when_custom_state"
+    assert action_name_for_status(ThreadStatus.OPEN.value) is None
+    assert action_name_for_status(ThreadStatus.UNKNOWN.value) is None
 
 
 def test_same_status_does_not_reapply_action() -> None:
-    for status in ThreadStatus:
-        assert not should_apply_status_action(status, status)
+    for s in ("open", "closed", "in_progress", "unknown"):
+        assert not should_apply_status_action(s, s)
 
 
 def test_status_transition_applies_action_only_for_actionable_status() -> None:
-    assert should_apply_status_action(ThreadStatus.OPEN, ThreadStatus.CLOSED)
-    assert should_apply_status_action(
-        ThreadStatus.OPEN,
-        ThreadStatus.DUPLICATE,
-    )
-    assert should_apply_status_action(
-        ThreadStatus.OPEN,
-        ThreadStatus.IN_PROGRESS,
-    )
-    assert not should_apply_status_action(
-        ThreadStatus.CLOSED,
-        ThreadStatus.OPEN,
-    )
+    assert should_apply_status_action(ThreadStatus.OPEN.value, "closed")
+    assert should_apply_status_action(ThreadStatus.OPEN.value, "duplicate")
+    assert should_apply_status_action(ThreadStatus.OPEN.value, "in_progress")
+    assert not should_apply_status_action("closed", ThreadStatus.OPEN.value)
 
 
 def test_added_state_tag_selects_action_even_with_conflicting_tag() -> None:
@@ -80,5 +67,6 @@ def _forum_config() -> ForumConfig:
                 "exported": {"tags": ["Wiki転記済み"]},
                 "closed": {"tags": ["解決済み"]},
             },
+            "state_order": ["duplicate", "in_progress", "exported", "closed"],
         }
     )

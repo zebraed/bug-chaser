@@ -1,4 +1,3 @@
-# -*- coding: utf-8 -*-
 """
 Forum configuration models.
 """
@@ -7,6 +6,12 @@ from __future__ import annotations
 from pathlib import Path
 
 from pydantic import BaseModel, ConfigDict, Field, field_validator, model_validator
+
+from bug_chaser.core.identifiers import (
+    DISCORD_FORUM_MAX_AVAILABLE_TAGS,
+    DISCORD_FORUM_TAG_NAME_MAX_LENGTH,
+    validate_state_id,
+)
 
 
 class SyncConfig(BaseModel):
@@ -53,6 +58,18 @@ class StateRule(BaseModel):
     tags: list[str] = Field(default_factory=list)
     reactions: list[str] = Field(default_factory=list)
 
+    @field_validator("tags")
+    @classmethod
+    def tag_names_match_discord_limits(cls, value: list[str]) -> list[str]:
+        for tag in value:
+            if not tag or len(tag) > DISCORD_FORUM_TAG_NAME_MAX_LENGTH:
+                msg = (
+                    f"Each tag name must be 1..{DISCORD_FORUM_TAG_NAME_MAX_LENGTH} "
+                    f"characters (Discord forum tag name); got {tag!r}"
+                )
+                raise ValueError(msg)
+        return value
+
 
 class ActionRule(BaseModel):
     add_tags: list[str] = Field(default_factory=list)
@@ -65,20 +82,34 @@ class ActionRule(BaseModel):
 
 class ForumConfig(BaseModel):
     forum: ForumSection
+    state_order: list[str] = Field(default_factory=list)
     states: dict[str, StateRule] = Field(default_factory=dict)
     actions: dict[str, ActionRule] = Field(default_factory=dict)
 
     model_config = ConfigDict(extra="forbid")
 
-    @field_validator("states")
-    @classmethod
-    def ensure_known_state_names(cls, value: dict[str, StateRule]) -> dict[str, StateRule]:
-        allowed = {"duplicate", "in_progress", "exported", "closed", "open"}
-        unknown = set(value) - allowed
-        if unknown:
-            msg = f"Unknown state rule names: {', '.join(sorted(unknown))}"
+    @model_validator(mode="after")
+    def validate_states_and_order(self) -> ForumConfig:
+        if len(self.states) > DISCORD_FORUM_MAX_AVAILABLE_TAGS:
+            msg = (
+                f"At most {DISCORD_FORUM_MAX_AVAILABLE_TAGS} state entries are allowed "
+                "(same upper bound as Discord forum `available_tags` per channel)."
+            )
             raise ValueError(msg)
-        return value
+        for name in self.states:
+            validate_state_id(name)
+        state_keys = set(self.states)
+        order_set = set(self.state_order)
+        if state_keys != order_set:
+            msg = (
+                "state_order must list exactly the keys under states once each "
+                f"(states={sorted(state_keys)} vs state_order={list(self.state_order)!r})."
+            )
+            raise ValueError(msg)
+        if len(self.state_order) != len(order_set):
+            msg = "state_order must not contain duplicate entries."
+            raise ValueError(msg)
+        return self
 
 
 class LoadedForumConfig(BaseModel):

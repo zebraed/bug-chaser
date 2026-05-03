@@ -1,5 +1,6 @@
-# -*- coding: utf-8 -*-
 """
+Shadow Lady is always watching YOU!
+
 Discord Gateway for bug-chaser.
 """
 from __future__ import annotations
@@ -14,6 +15,7 @@ from bug_chaser.config.registry import ForumRegistry
 from bug_chaser.core.models import ThreadSnapshot, ThreadStatus
 from bug_chaser.core.settings import AppSettings
 from bug_chaser.discord.bird import ShadowBirdCollector
+from bug_chaser.discord.forum_validation import assert_configured_tags_exist_on_forums
 from bug_chaser.discord.gloop import GloopSnapshotBuilder
 from bug_chaser.discord.guard import RobotGuardThreadManager
 from bug_chaser.discord.mothman import MothmanCommandHandler
@@ -28,25 +30,10 @@ from bug_chaser.sync.service import SyncService
 logger = logging.getLogger(__name__)
 
 
-ACTION_BY_STATUS = {
-    ThreadStatus.DUPLICATE: "when_duplicate",
-    ThreadStatus.IN_PROGRESS: "when_in_progress",
-    ThreadStatus.EXPORTED: "when_exported",
-    ThreadStatus.CLOSED: "when_closed",
-}
-
-ACTION_BY_STATE_NAME = {
-    "duplicate": "when_duplicate",
-    "in_progress": "when_in_progress",
-    "exported": "when_exported",
-    "closed": "when_closed",
-}
-
-STATE_MATCH_ORDER = ("duplicate", "exported", "closed", "in_progress")
-
-
-def action_name_for_status(status: ThreadStatus) -> str | None:
-    return ACTION_BY_STATUS.get(status)
+def action_name_for_status(status: str) -> str | None:
+    if status in (ThreadStatus.OPEN.value, ThreadStatus.UNKNOWN.value):
+        return None
+    return f"when_{status}"
 
 
 def action_name_for_added_tags(
@@ -58,17 +45,14 @@ def action_name_for_added_tags(
     if not added_tags:
         return None
 
-    for state_name in STATE_MATCH_ORDER:
+    for state_name in config.state_order:
         rule = config.states.get(state_name)
         if rule is not None and any(tag in added_tags for tag in rule.tags):
-            return ACTION_BY_STATE_NAME[state_name]
+            return f"when_{state_name}"
     return None
 
 
-def should_apply_status_action(
-    before_status: ThreadStatus,
-    after_status: ThreadStatus,
-) -> bool:
+def should_apply_status_action(before_status: str, after_status: str) -> bool:
     return before_status != after_status and action_name_for_status(after_status) is not None
 
 
@@ -94,6 +78,7 @@ class ShadowLadyGateway(discord.Client):
         self._thread_manager = RobotGuardThreadManager()
         self._google_clients = self._build_google_clients(settings)
         self._scheduler: BugChaserScheduler | None = None
+        self._startup_initialized = False
 
     async def setup_hook(self) -> None:
         collector = ShadowBirdCollector(self)
@@ -122,7 +107,6 @@ class ShadowLadyGateway(discord.Client):
         )
         self.tree.add_command(handler.group)
         self._scheduler = BugChaserScheduler(self._registry, sync_service)
-        self._scheduler.start()
 
         if self._settings.command_guild_id:
             guild = discord.Object(id=self._settings.command_guild_id)
@@ -132,6 +116,17 @@ class ShadowLadyGateway(discord.Client):
             await self.tree.sync()
 
     async def on_ready(self) -> None:
+        if not self._startup_initialized:
+            try:
+                await assert_configured_tags_exist_on_forums(self, self._registry.all)
+            except ValueError:
+                logger.exception("Forum configuration validation failed; stopping client.")
+                await self.close()
+                return
+            self._startup_initialized = True
+            if self._scheduler is not None:
+                self._scheduler.start()
+
         logger.info("bug-chaser logged in as %s", self.user)
 
     async def on_thread_update(self, before: discord.Thread, after: discord.Thread) -> None:

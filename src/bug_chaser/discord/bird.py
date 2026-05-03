@@ -1,6 +1,6 @@
-# -*- coding: utf-8 -*-
 """
-Shadow Bird appears !
+Shadow Bird appears.
+
 Collector for forum threads.
 """
 from __future__ import annotations

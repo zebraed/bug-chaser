@@ -114,8 +114,8 @@ class SheetExporter:
             snapshot.tag_summary(),
             snapshot.reaction_summary(),
             snapshot.reply_count,
-            snapshot.status.value,
-            str(snapshot.status.value == "in_progress").lower(),
-            str(snapshot.status.value == "exported").lower(),
+            snapshot.status,
+            str(snapshot.status == "in_progress").lower(),
+            str(snapshot.status == "exported").lower(),
             "",
         ]

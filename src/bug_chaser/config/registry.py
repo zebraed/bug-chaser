@@ -1,4 +1,3 @@
-# -*- coding: utf-8 -*-
 """
 Registry for forum configurations.
 """

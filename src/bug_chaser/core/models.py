@@ -1,4 +1,3 @@
-# -*- coding: utf-8 -*-
 """
 Core domain models.
 """
@@ -8,14 +7,14 @@ from dataclasses import dataclass, field
 from datetime import datetime
 from enum import Enum
 
+from bug_chaser.core.identifiers import validate_thread_status_value
+
 
 class ThreadStatus(str, Enum):
+    """Built-in status values only; YAML-defined states use the same string storage."""
+
     UNKNOWN = "unknown"
     OPEN = "open"
-    DUPLICATE = "duplicate"
-    IN_PROGRESS = "in_progress"
-    EXPORTED = "exported"
-    CLOSED = "closed"
 
 
 class AutomationFeature(str, Enum):
@@ -48,7 +47,10 @@ class ThreadSnapshot:
     url: str | None = None
     archived: bool = False
     locked: bool = False
-    status: ThreadStatus = ThreadStatus.UNKNOWN
+    status: str = ThreadStatus.UNKNOWN.value
+
+    def __post_init__(self) -> None:
+        validate_thread_status_value(self.status)
 
     def reaction_summary(self) -> str:
         return ", ".join(f"{reaction.emoji}:{reaction.count}" for reaction in self.reactions)

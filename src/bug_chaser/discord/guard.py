@@ -1,5 +1,6 @@
-# -*- coding: utf-8 -*-
 """
+あ！野生のガードロボが飛び出してきた！
+
 Manager for applying forum management actions.
 """
 from __future__ import annotations

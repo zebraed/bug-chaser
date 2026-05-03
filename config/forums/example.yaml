@@ -22,6 +22,14 @@ forum:
     auto_archive: false
     auto_lock: false
 
+# Evaluation order: first match wins. Must list every key under `states` exactly once.
+# At most 20 state entries (Discord forum available_tags per channel; see API docs).
+state_order:
+  - duplicate
+  - in_progress
+  - exported
+  - closed
+
 states:
   duplicate:
     tags: ["Duplicate"]

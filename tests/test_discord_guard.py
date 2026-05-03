@@ -38,6 +38,7 @@ def test_action_sends_comment_before_archiving() -> None:
                     "auto_archive": True,
                 },
             },
+            "state_order": [],
             "actions": {
                 "when_closed": {
                     "add_comment": "解決済みです。",

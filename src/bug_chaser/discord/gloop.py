@@ -1,5 +1,6 @@
-# -*- coding: utf-8 -*-
 """
+Gloop Gloop Gloop
+
 Builder for normalized forum thread snapshots.
 """
 from __future__ import annotations

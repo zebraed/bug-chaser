@@ -141,7 +141,7 @@ class SQLiteStore:
                     snapshot.url,
                     int(snapshot.archived),
                     int(snapshot.locked),
-                    snapshot.status.value,
+                    snapshot.status,
                 ),
             )
 

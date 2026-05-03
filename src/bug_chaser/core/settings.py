@@ -1,4 +1,3 @@
-# -*- coding: utf-8 -*-
 """
 Runtime settings for the application.
 """

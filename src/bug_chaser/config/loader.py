@@ -1,4 +1,3 @@
-# -*- coding: utf-8 -*-
 """
 Loader for per-forum YAML files.
 """

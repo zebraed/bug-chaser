@@ -1,5 +1,7 @@
 # bug-chaser
 
+<img height="300" alt="ふらんねる線画3" src="https://github.com/user-attachments/assets/20244ffb-6e27-4e4e-8c51-6979fe30604f" />
+
 Discordのフォーラム投稿を監視し、報告の取得、タグ状態判定、管理補助、Google Sheetsと連携を行うDiscord-Botです。
 
 ## 主な機能

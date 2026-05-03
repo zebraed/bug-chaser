@@ -20,8 +20,6 @@ MASTER_HEADERS = [
     "Reactions",
     "Reply Count",
     "Status",
-    "In Progress",
-    "Wiki Exported",
     "Last Synced At",
 ]
 
@@ -48,7 +46,7 @@ class SheetExporter:
             self._update_row(spreadsheet_id, sheet_name, existing, values)
 
     def _ensure_headers(self, spreadsheet_id: str, sheet_name: str) -> None:
-        range_name = f"{sheet_name}!A1:N1"
+        range_name = f"{sheet_name}!A1:L1"
         current = (
             self._sheets.spreadsheets()
             .values()
@@ -82,7 +80,7 @@ class SheetExporter:
     def _append_row(self, spreadsheet_id: str, sheet_name: str, values: list[str | int]) -> None:
         self._sheets.spreadsheets().values().append(
             spreadsheetId=spreadsheet_id,
-            range=f"{sheet_name}!A:N",
+            range=f"{sheet_name}!A:L",
             valueInputOption="RAW",
             insertDataOption="INSERT_ROWS",
             body={"values": [values]},
@@ -97,7 +95,7 @@ class SheetExporter:
     ) -> None:
         self._sheets.spreadsheets().values().update(
             spreadsheetId=spreadsheet_id,
-            range=f"{sheet_name}!A{row_number}:N{row_number}",
+            range=f"{sheet_name}!A{row_number}:L{row_number}",
             valueInputOption="RAW",
             body={"values": [values]},
         ).execute()
@@ -115,7 +113,5 @@ class SheetExporter:
             snapshot.reaction_summary(),
             snapshot.reply_count,
             snapshot.status,
-            str(snapshot.status == "in_progress").lower(),
-            str(snapshot.status == "exported").lower(),
             "",
         ]

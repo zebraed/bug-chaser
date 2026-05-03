@@ -161,7 +161,7 @@ python -m bug_chaser
 
 ## スラッシュコマンド
 
-Botを招待したチャンネルで以下のコマンドが使用可能です。
+Botが有効なチャンネルで以下のコマンドが使用可能です。
 
 - `/bugchaser run`: 全フォーラムを同期
 - `/bugchaser channel`: 指定フォーラムを同期

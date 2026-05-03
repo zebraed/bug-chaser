@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import logging
 
+from bug_chaser.config.bot_messages import load_bot_messages
 from bug_chaser.config.loader import ForumConfigLoader
 from bug_chaser.core.settings import AppSettings
 from bug_chaser.discord.lady import ShadowLadyGateway
@@ -22,7 +23,13 @@ def main() -> None:
     for config in configs:
         store.upsert_forum(config)
 
-    client = ShadowLadyGateway(settings=settings, configs=configs, store=store)
+    bot_messages = load_bot_messages(settings)
+    client = ShadowLadyGateway(
+        settings=settings,
+        configs=configs,
+        store=store,
+        bot_messages=bot_messages,
+    )
     client.run(settings.discord_token)
 
 

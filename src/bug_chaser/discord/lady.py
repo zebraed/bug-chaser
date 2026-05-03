@@ -10,6 +10,7 @@ import logging
 import discord
 from discord import app_commands
 
+from bug_chaser.config.bot_messages import BotMessages
 from bug_chaser.config.forum import ForumConfig
 from bug_chaser.config.registry import ForumRegistry
 from bug_chaser.core.models import ThreadSnapshot, ThreadStatus
@@ -62,6 +63,7 @@ class ShadowLadyGateway(discord.Client):
         settings: AppSettings,
         configs: list[ForumConfig],
         store: SQLiteStore,
+        bot_messages: BotMessages | None = None,
     ) -> None:
         intents = discord.Intents.default()
         intents.message_content = True
@@ -79,6 +81,7 @@ class ShadowLadyGateway(discord.Client):
         self._google_clients = self._build_google_clients(settings)
         self._scheduler: BugChaserScheduler | None = None
         self._startup_initialized = False
+        self._bot_messages = bot_messages or BotMessages()
 
     async def setup_hook(self) -> None:
         collector = ShadowBirdCollector(self)
@@ -104,6 +107,7 @@ class ShadowLadyGateway(discord.Client):
             sync_service=sync_service,
             store=self._store,
             provisioner=provisioner,
+            messages=self._bot_messages,
         )
         self.tree.add_command(handler.group)
         self._scheduler = BugChaserScheduler(self._registry, sync_service)
@@ -128,6 +132,57 @@ class ShadowLadyGateway(discord.Client):
                 self._scheduler.start()
 
         logger.info("bug-chaser logged in as %s", self.user)
+
+    async def on_guild_join(self, guild: discord.Guild) -> None:
+        gj = self._bot_messages.guild_join
+        if not gj.enabled or not gj.message.strip():
+            return
+
+        channel: discord.abc.Messageable | None = None
+        if gj.channel_id is not None:
+            raw = guild.get_channel(gj.channel_id)
+            if isinstance(raw, discord.abc.Messageable):
+                channel = raw
+
+        if channel is None:
+            sys_ch = guild.system_channel
+            if isinstance(sys_ch, discord.abc.Messageable):
+                channel = sys_ch
+
+        if channel is None:
+            me = guild.me
+            for text_ch in guild.text_channels:
+                if me is not None and text_ch.permissions_for(me).send_messages:
+                    channel = text_ch
+                    break
+
+        if channel is None:
+            logger.warning(
+                "Guild join message skipped (no channel): guild_id=%s",
+                guild.id,
+            )
+            return
+
+        me = guild.me
+        if (
+            me is not None
+            and hasattr(channel, "permissions_for")
+            and not channel.permissions_for(me).send_messages
+        ):
+            logger.warning(
+                "Guild join message skipped (no permission): guild_id=%s channel_id=%s",
+                guild.id,
+                getattr(channel, "id", None),
+            )
+            return
+
+        try:
+            await channel.send(gj.message)
+        except discord.HTTPException:
+            logger.exception(
+                "Failed to send guild join message: guild_id=%s",
+                guild.id,
+            )
 
     async def on_thread_update(self, before: discord.Thread, after: discord.Thread) -> None:
         await self._maybe_apply_automation(before, after)

@@ -1,0 +1,9 @@
+commands:
+  run_line: "{forum_key}: fetched={fetched}, stored={stored}, exported={exported}, errors={errors}"
+  run_empty: "フォーラム設定がありません。"
+
+guild_join:
+  enabled: false
+  message: ""
+  # message: "サーバーに参加したよ！"
+  # channel_id: 123456789012345678

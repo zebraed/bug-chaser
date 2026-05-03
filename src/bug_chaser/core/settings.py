@@ -27,6 +27,10 @@ class AppSettings(BaseSettings):
         default=None,
         alias="BUG_CHASER_COMMAND_GUILD_ID",
     )
+    bot_messages_file: Path | None = Field(
+        default=None,
+        alias="BUG_CHASER_BOT_MESSAGES_FILE",
+    )
 
     model_config = SettingsConfigDict(env_file=".env", extra="ignore")
 
@@ -36,6 +40,13 @@ class AppSettings(BaseSettings):
         cls,
         value: object,
     ) -> object:
+        if value == "":
+            return None
+        return value
+
+    @field_validator("bot_messages_file", mode="before")
+    @classmethod
+    def empty_bot_messages_file_is_none(cls, value: object) -> object:
         if value == "":
             return None
         return value

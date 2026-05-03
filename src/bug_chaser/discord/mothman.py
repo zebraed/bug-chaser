@@ -8,6 +8,7 @@ from __future__ import annotations
 import discord
 from discord import app_commands
 
+from bug_chaser.config.bot_messages import BotMessages, format_bot_message
 from bug_chaser.config.forum import ForumConfig
 from bug_chaser.config.registry import ForumRegistry
 from bug_chaser.core.models import AutomationFeature
@@ -23,11 +24,13 @@ class MothmanCommandHandler:
         sync_service: SyncService,
         store: SQLiteStore,
         provisioner: SpreadsheetProvisioner | None = None,
+        messages: BotMessages | None = None,
     ) -> None:
         self._registry = registry
         self._sync_service = sync_service
         self._store = store
         self._provisioner = provisioner
+        self._msg = (messages or BotMessages()).commands
         self.group = app_commands.Group(name="bugchaser", description="bug-chaser management")
         self._register_commands()
 
@@ -80,10 +83,20 @@ class MothmanCommandHandler:
         for config in self._registry.all:
             result = await self._sync_service.sync_forum(config)
             lines.append(
-                f"{result.forum_key}: fetched={result.fetched}, "
-                f"stored={result.stored}, exported={result.exported}, errors={len(result.errors)}"
+                format_bot_message(
+                    self._msg.run_line,
+                    forum_key=result.forum_key,
+                    fetched=result.fetched,
+                    stored=result.stored,
+                    exported=result.exported,
+                    errors=len(result.errors),
+                )
             )
-        await interaction.followup.send("\n".join(lines) or "No forums configured.", ephemeral=True)
+        await interaction.followup.send(
+            "\n".join(lines)
+            or format_bot_message(self._msg.run_empty),
+            ephemeral=True,
+        )
 
     async def channel(
         self,
@@ -94,8 +107,14 @@ class MothmanCommandHandler:
         config = self._registry.get_by_channel_id(forum_channel.id)
         result = await self._sync_service.sync_forum(config)
         await interaction.followup.send(
-            f"{result.forum_key}: fetched={result.fetched}, stored={result.stored}, "
-            f"exported={result.exported}, errors={len(result.errors)}",
+            format_bot_message(
+                self._msg.channel_result,
+                forum_key=result.forum_key,
+                fetched=result.fetched,
+                stored=result.stored,
+                exported=result.exported,
+                errors=len(result.errors),
+            ),
             ephemeral=True,
         )
 
@@ -105,8 +124,12 @@ class MothmanCommandHandler:
         for config in self._registry.all:
             result = await self._sync_service.sync_forum(config, dry_run=True)
             lines.append(
-                f"{result.forum_key}: fetched={result.fetched}, "
-                f"errors={len(result.errors)}"
+                format_bot_message(
+                    self._msg.dry_run_line,
+                    forum_key=result.forum_key,
+                    fetched=result.fetched,
+                    errors=len(result.errors),
+                )
             )
         await interaction.followup.send("\n".join(lines), ephemeral=True)
 
@@ -115,15 +138,20 @@ class MothmanCommandHandler:
         thread = await self._fetch_thread(interaction.client, thread_url_or_id)
         if thread.parent_id is None:
             await interaction.followup.send(
-                "The target thread has no parent forum.",
+                format_bot_message(self._msg.thread_no_parent),
                 ephemeral=True,
             )
             return
         config = self._registry.get_by_channel_id(thread.parent_id)
         result = await self._sync_service.sync_thread(config, thread)
         await interaction.followup.send(
-            f"{result.forum_key}: stored={result.stored}, exported={result.exported}, "
-            f"errors={len(result.errors)}",
+            format_bot_message(
+                self._msg.thread_result,
+                forum_key=result.forum_key,
+                stored=result.stored,
+                exported=result.exported,
+                errors=len(result.errors),
+            ),
             ephemeral=True,
         )
 
@@ -132,31 +160,45 @@ class MothmanCommandHandler:
         lines: list[str] = []
         for config in self._registry.all:
             if not config.forum.sheets.enabled:
-                lines.append(f"{config.forum.key}: Sheets disabled")
+                lines.append(
+                    format_bot_message(
+                        self._msg.export_sheets_disabled,
+                        forum_key=config.forum.key,
+                    )
+                )
                 continue
             result = await self._sync_service.sync_forum(config)
             lines.append(
-                f"{config.forum.key}: exported={result.exported}, "
-                f"errors={len(result.errors)}"
+                format_bot_message(
+                    self._msg.export_line,
+                    forum_key=result.forum_key,
+                    exported=result.exported,
+                    errors=len(result.errors),
+                )
             )
         await interaction.followup.send("\n".join(lines), ephemeral=True)
 
     async def status(self, interaction: discord.Interaction) -> None:
         lines = [
-            f"{config.forum.key}: channel={config.forum.channel_id}, "
-            f"sheets={config.forum.sheets.enabled}, "
-            f"automation={config.forum.automation.enabled}, "
-            f"comment={config.forum.automation.auto_comment}, "
-            f"tag={config.forum.automation.auto_tag}, "
-            f"archive={config.forum.automation.auto_archive}, "
-            f"lock={config.forum.automation.auto_lock}"
+            format_bot_message(
+                self._msg.status_line,
+                forum_key=config.forum.key,
+                channel_id=config.forum.channel_id,
+                sheets_enabled=config.forum.sheets.enabled,
+                automation_enabled=config.forum.automation.enabled,
+                auto_comment=config.forum.automation.auto_comment,
+                auto_tag=config.forum.automation.auto_tag,
+                auto_archive=config.forum.automation.auto_archive,
+                auto_lock=config.forum.automation.auto_lock,
+            )
             for config in self._registry.all
         ]
         await interaction.response.send_message("\n".join(lines), ephemeral=True)
 
     async def fairy(self, interaction: discord.Interaction) -> None:
-        _msg = "うわぁーーーーーーーーーーーーーーーーーーーー！！！！！！！！！"
-        await interaction.response.send_message(_msg)
+        await interaction.response.send_message(
+            format_bot_message(self._msg.fairy),
+        )
 
     async def sheets_on(
         self,
@@ -166,11 +208,14 @@ class MothmanCommandHandler:
         await interaction.response.defer(ephemeral=True, thinking=True)
         config = self._registry.get_by_channel_id(forum_channel.id)
         if not config.forum.sheets.configured:
-            await interaction.followup.send("Sheets is not configured in YAML.", ephemeral=True)
+            await interaction.followup.send(
+                format_bot_message(self._msg.sheets_not_configured),
+                ephemeral=True,
+            )
             return
         if self._provisioner is None:
             await interaction.followup.send(
-                "Google Service Account is not configured.",
+                format_bot_message(self._msg.sheets_no_service_account),
                 ephemeral=True,
             )
             return
@@ -180,7 +225,10 @@ class MothmanCommandHandler:
         self._store.set_spreadsheet_id(config.forum.key, spreadsheet_id)
         self._store.set_sheets_enabled(config.forum.key, True)
         await interaction.followup.send(
-            f"Sheets sync enabled: {spreadsheet_id}",
+            format_bot_message(
+                self._msg.sheets_enabled,
+                spreadsheet_id=spreadsheet_id,
+            ),
             ephemeral=True,
         )
 
@@ -192,7 +240,10 @@ class MothmanCommandHandler:
         config = self._registry.get_by_channel_id(forum_channel.id)
         config.forum.sheets.enabled = False
         self._store.set_sheets_enabled(config.forum.key, False)
-        await interaction.response.send_message("Sheets sync disabled.", ephemeral=True)
+        await interaction.response.send_message(
+            format_bot_message(self._msg.sheets_disabled),
+            ephemeral=True,
+        )
 
     async def automation_on(
         self,
@@ -204,7 +255,10 @@ class MothmanCommandHandler:
         self._set_automation_feature(config, feature, True)
         self._store.set_automation_enabled(config.forum.key, feature, True)
         await interaction.response.send_message(
-            f"Automation enabled: {feature.value}",
+            format_bot_message(
+                self._msg.automation_enabled,
+                feature=feature.value,
+            ),
             ephemeral=True,
         )
 
@@ -218,7 +272,10 @@ class MothmanCommandHandler:
         self._set_automation_feature(config, feature, False)
         self._store.set_automation_enabled(config.forum.key, feature, False)
         await interaction.response.send_message(
-            f"Automation disabled: {feature.value}",
+            format_bot_message(
+                self._msg.automation_disabled,
+                feature=feature.value,
+            ),
             ephemeral=True,
         )
 
@@ -226,13 +283,19 @@ class MothmanCommandHandler:
         await interaction.response.defer(ephemeral=True, thinking=True)
         thread = await self._fetch_thread(interaction.client, thread_url_or_id)
         await thread.edit(archived=True, locked=True)
-        await interaction.followup.send("Thread closed.", ephemeral=True)
+        await interaction.followup.send(
+            format_bot_message(self._msg.thread_closed),
+            ephemeral=True,
+        )
 
     async def reopen(self, interaction: discord.Interaction, thread_url_or_id: str) -> None:
         await interaction.response.defer(ephemeral=True, thinking=True)
         thread = await self._fetch_thread(interaction.client, thread_url_or_id)
         await thread.edit(archived=False, locked=False)
-        await interaction.followup.send("Thread reopened.", ephemeral=True)
+        await interaction.followup.send(
+            format_bot_message(self._msg.thread_reopened),
+            ephemeral=True,
+        )
 
     async def _fetch_thread(
         self,

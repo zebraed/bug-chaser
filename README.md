@@ -9,7 +9,7 @@ Discordのフォーラム投稿を監視し、報告の取得、タグ状態判�
 - タグの排他制御を提供します。
 - 同期結果をSQLiteに保存します。
 - `/bugchaser` スラッシュコマンドで同期の手動実行や Sheets・自動処理のオンオフができます。
-- Google Sheets 連携は任意です。有効にするとフォーラムごとにスプレッドシートを用意でき、Bot が 1枚目にマスターデータを転記し、2枚目は進捗管理用として利用できます。
+- WIP: Google Sheets 連携は任意です。有効にするとフォーラムごとにスプレッドシートを用意でき、Bot が 1枚目にマスターデータを転記し、2枚目は進捗管理用として利用できます。
 
 ## セットアップ
 
@@ -41,10 +41,49 @@ Copy-Item .env.example .env
 
 
 - `BUG_CHASER_DISCORD_TOKEN`: Discord Developer Portal で発行した Bot token です。
-- `BUG_CHASER_CONFIG_DIR`: フォーラム別 YAML を置くディレクトリです。通常は `config/forums` のままで使います。
+- `BUG_CHASER_CONFIG_DIR`: フォーラム別 YAML を置くディレクトリです。デフォルトは `config/forums` です。
 - `BUG_CHASER_DB_PATH`: 同期結果を保存する SQLite データベースのパスです。親ディレクトリは起動時に自動作成されます。
 - `BUG_CHASER_GOOGLE_SERVICE_ACCOUNT_FILE`: Google Sheets 連携を使う場合に、Service Account 認証 JSON のパスを指定します。Sheets 連携を使わない場合は空で構いません。
 - `BUG_CHASER_COMMAND_GUILD_ID`: スラッシュコマンドを即時反映したいDiscordサーバーの Guild IDです。未設定の場合はグローバルコマンドとして同期され、反映に時間がかかる場合があります。
+- `BUG_CHASER_BOT_MESSAGES_FILE`: コマンド返信・サーバー参加時メッセージ用 YAML のパスです。**設定した場合はファイルが存在しないと起動に失敗します。** 未設定のときは `config/bot_messages.yaml` があれば読み込み（`BUG_CHASER_CONFIG_DIR` が `config/forums` のとき、`config` 直下）、無ければコード内のデフォルト文を使います。
+
+### Bot メッセージ（任意）
+
+`config/bot_messages.example.yaml` を参考に `config/bot_messages.yaml` を置くと、`/bugchaser` 各サブコマンドの返答文字列を差し替えられます。YAML ではトップレベルに `commands` と `guild_join` を置きます。キーは省略可能で、書いた項目だけ上書きできます。
+
+`commands` 配下の値は Python の `str.format` と同様です。
+
+#### `commands`（スラッシュコマンドごとのキー一覧）
+
+| YAML キー | `/bugchaser` のコマンド | 利用できるプレースホルダ |
+| --- | --- | --- |
+| `run_line` | `run`（フォーラムごとの1行） | `forum_key`, `fetched`, `stored`, `exported`, `errors`（エラー件数） |
+| `run_empty` | `run`（フォーラムが1件も無いときの全文） | なし |
+| `channel_result` | `channel` | `forum_key`, `fetched`, `stored`, `exported`, `errors` |
+| `dry_run_line` | `dry-run`（フォーラムごとの 1 行） | `forum_key`, `fetched`, `errors` |
+| `thread_no_parent` | `thread`（親フォーラムが無いとき） | なし |
+| `thread_result` | `thread`（同期結果） | `forum_key`, `stored`, `exported`, `errors` |
+| `export_sheets_disabled` | `export`（Sheets が無効なフォーラムの行） | `forum_key` |
+| `export_line` | `export`（同期した行） | `forum_key`, `exported`, `errors` |
+| `status_line` | `status`（フォーラムごとの 1 行） | `forum_key`, `channel_id`, `sheets_enabled`, `automation_enabled`, `auto_comment`, `auto_tag`, `auto_archive`, `auto_lock` |
+| `sheets_not_configured` | `sheets on`（YAML 未設定時） | なし |
+| `sheets_no_service_account` | `sheets on`（Service Account 無し時） | なし |
+| `sheets_enabled` | `sheets on`（成功時） | `spreadsheet_id` |
+| `sheets_disabled` | `sheets off` | なし |
+| `automation_enabled` | `automation on` | `feature`（`all`, `auto_comment` など AutomationFeature の値） |
+| `automation_disabled` | `automation off` | `feature` |
+| `thread_closed` | `close` | なし |
+| `thread_reopened` | `reopen` | なし |
+
+#### `guild_join`（サーバー参加時の 1 通）
+
+Bot が **新規にサーバーへ追加されたとき** に送る本文です。
+
+| 属性 | 型 | 説明 |
+| --- | --- | --- |
+| `enabled` | bool | `true` のときだけ送信処理を行う（既定は `false`）。 |
+| `message` | str | 送る本文。空または空白のみのときは送信しない。 |
+| `channel_id` | int or None | そのサーバー内のチャンネルID。指定したチャンネルがあればそこへ送る。未指定のときはシステムチャンネル、なければ Bot がメッセージを送れる最初のテキストチャンネル。 |
 
 ## Google Sheets 連携
 

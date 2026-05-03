@@ -11,7 +11,8 @@ Discordのフォーラム投稿を監視し、報告の取得、タグ状態判�
 - タグの排他制御を提供します。
 - 同期結果をSQLiteに保存します。
 - `/bugchaser` スラッシュコマンドで同期の手動実行や Sheets・自動処理のオンオフができます。
-- WIP: Google Sheets 連携は任意です。有効にするとフォーラムごとにスプレッドシートを用意でき、Bot が 1枚目にマスターデータを転記し、2枚目は進捗管理用として利用できます。
+
+- WIP（対応予定）: Google Sheets 連携は任意です。有効にするとフォーラムごとにスプレッドシートを用意でき、Bot が 1枚目にマスターデータを転記し、2枚目は進捗管理用として利用できます。
 
 ## セットアップ
 
@@ -104,6 +105,15 @@ Sheets 連携は Service Account 方式です。
 `config/forums/example.yaml` を参考に、`config/forums/<forum_key>.yaml` を作成して編集します。
 
 > 注意:`example.yaml` は読み込みません。リポジトリ内のサンプル用です。
+
+### forum.sync
+
+スケジューラによる定期同期の設定です。
+
+| フィールド | 型 | 既定値 | 説明 |
+| --- | --- | --- | --- |
+| `interval_minutes` | int | 10 | 定期同期の間隔（分）。1 以上。 |
+| `dry_run_default` | bool | true | `true` のとき、スケジューラはDB・Sheetsへの書き込みをスキップする（テストモード）|
 
 ### states と state_order
 

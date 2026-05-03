@@ -32,7 +32,10 @@ class BugChaserScheduler:
     async def _run_forum(self, forum_key: str) -> None:
         config = self._registry.get_by_key(forum_key)
         try:
-            result = await self._sync_service.sync_forum(config)
+            result = await self._sync_service.sync_forum(
+                config,
+                dry_run=config.forum.sync.dry_run_default,
+            )
             logger.info(
                 "Scheduled sync finished for %s: fetched=%s stored=%s exported=%s errors=%s",
                 result.forum_key,

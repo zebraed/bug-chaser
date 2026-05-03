@@ -73,7 +73,7 @@ def test_rule_engine_ignores_configured_tags_that_are_not_on_thread() -> None:
             "states": {
                 "duplicate": {"tags": ["重複"]},
                 "in_progress": {"tags": ["対応中（Wiki転記不要）"]},
-                "wiki_exported": {"tags": ["Wiki転記済み"]},
+                "exported": {"tags": ["Wiki転記済み"]},
                 "closed": {"tags": ["解決済み"]},
             },
         }

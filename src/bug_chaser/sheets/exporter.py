@@ -116,6 +116,6 @@ class SheetExporter:
             snapshot.reply_count,
             snapshot.status.value,
             str(snapshot.status.value == "in_progress").lower(),
-            str(snapshot.status.value == "wiki_exported").lower(),
+            str(snapshot.status.value == "exported").lower(),
             "",
         ]

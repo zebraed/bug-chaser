@@ -27,7 +27,7 @@ states:
     tags: ["Duplicate"]
   in_progress:
     tags: ["In Progress"]
-  wiki_exported:
+  exported:
     tags: ["Wiki Exported"]
   closed:
     tags: ["Closed"]
@@ -37,7 +37,7 @@ actions:
     add_comment: "This report has been recorded as a duplicate."
   when_in_progress:
     add_comment: "This report has been recorded as in progress."
-  when_wiki_exported:
+  when_exported:
     add_tags: ["Closed"]
     archive: true
   when_closed:

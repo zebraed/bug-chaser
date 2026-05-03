@@ -14,8 +14,8 @@ def test_status_action_names() -> None:
         == "when_in_progress"
     )
     assert (
-        action_name_for_status(ThreadStatus.WIKI_EXPORTED)
-        == "when_wiki_exported"
+        action_name_for_status(ThreadStatus.EXPORTED)
+        == "when_exported"
     )
     assert action_name_for_status(ThreadStatus.CLOSED) == "when_closed"
     assert action_name_for_status(ThreadStatus.OPEN) is None
@@ -77,7 +77,7 @@ def _forum_config() -> ForumConfig:
             "states": {
                 "duplicate": {"tags": ["重複"]},
                 "in_progress": {"tags": ["対応中"]},
-                "wiki_exported": {"tags": ["Wiki転記済み"]},
+                "exported": {"tags": ["Wiki転記済み"]},
                 "closed": {"tags": ["解決済み"]},
             },
         }

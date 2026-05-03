@@ -1,94 +1,244 @@
 """
 あ！野生のガードロボが飛び出してきた！
 
-Manager for applying forum management actions.
+Discord Gateway for bug-chaser.
 """
 from __future__ import annotations
 
-import asyncio
 import logging
 
 import discord
+from discord import app_commands
 
-from bug_chaser.config.forum import ActionRule, ForumConfig
+from bug_chaser.config.bot_messages import BotMessages
+from bug_chaser.config.forum import ForumConfig
+from bug_chaser.config.registry import ForumRegistry
+from bug_chaser.core.models import ThreadSnapshot, ThreadStatus
+from bug_chaser.core.settings import AppSettings
+from bug_chaser.discord.bird import ShadowBirdCollector
+from bug_chaser.discord.forum_validation import assert_configured_tags_exist_on_forums
+from bug_chaser.discord.gloop import GloopSnapshotBuilder
+from bug_chaser.discord.lady import ShadowLadyThreadManager
+from bug_chaser.discord.mothman import MothmanCommandHandler
+from bug_chaser.rules.engine import RuleEngine
+from bug_chaser.sheets.exporter import SheetExporter
+from bug_chaser.sheets.google import GoogleClients
+from bug_chaser.sheets.provisioner import SpreadsheetProvisioner
+from bug_chaser.storage.sqlite_store import SQLiteStore
+from bug_chaser.sync.scheduler import BugChaserScheduler
+from bug_chaser.sync.service import SyncService
 
 logger = logging.getLogger(__name__)
 
 
-class RobotGuardThreadManager:
-    """Applies forum management actions when automation is enabled."""
+def action_name_for_status(status: str) -> str | None:
+    if status in (ThreadStatus.OPEN.value, ThreadStatus.UNKNOWN.value):
+        return None
+    return f"when_{status}"
 
-    def __init__(self, archive_delay_seconds: float = 1.0) -> None:
-        self._archive_delay_seconds = archive_delay_seconds
 
-    async def apply_action(
+def action_name_for_added_tags(
+    config: ForumConfig,
+    before_tags: tuple[str, ...],
+    after_tags: tuple[str, ...],
+) -> str | None:
+    added_tags = set(after_tags) - set(before_tags)
+    if not added_tags:
+        return None
+
+    for state_name in config.state_order:
+        rule = config.states.get(state_name)
+        if rule is not None and any(tag in added_tags for tag in rule.tags):
+            return f"when_{state_name}"
+    return None
+
+
+def should_apply_status_action(before_status: str, after_status: str) -> bool:
+    return before_status != after_status and action_name_for_status(after_status) is not None
+
+
+class GuardRobotGateway(discord.Client):
+    def __init__(
         self,
-        config: ForumConfig,
-        thread: discord.Thread,
-        action_name: str,
+        settings: AppSettings,
+        configs: list[ForumConfig],
+        store: SQLiteStore,
+        bot_messages: BotMessages | None = None,
     ) -> None:
-        automation = config.forum.automation
-        if not automation.enabled:
+        intents = discord.Intents.default()
+        intents.message_content = True
+        intents.guilds = True
+        intents.reactions = True
+        super().__init__(intents=intents)
+
+        self.tree = app_commands.CommandTree(self)
+        self._settings = settings
+        self._registry = ForumRegistry(configs)
+        self._store = store
+        self._rule_engine = RuleEngine()
+        self._snapshot_builder = GloopSnapshotBuilder()
+        self._thread_manager = ShadowLadyThreadManager()
+        self._google_clients = self._build_google_clients(settings)
+        self._scheduler: BugChaserScheduler | None = None
+        self._startup_initialized = False
+        self._bot_messages = bot_messages or BotMessages()
+
+    async def setup_hook(self) -> None:
+        collector = ShadowBirdCollector(self)
+        sheet_exporter = (
+            SheetExporter(self._google_clients)
+            if self._google_clients is not None
+            else None
+        )
+        provisioner = (
+            SpreadsheetProvisioner(self._google_clients)
+            if self._google_clients is not None
+            else None
+        )
+        sync_service = SyncService(
+            collector=collector,
+            snapshot_builder=self._snapshot_builder,
+            rule_engine=self._rule_engine,
+            store=self._store,
+            sheet_exporter=sheet_exporter,
+        )
+        handler = MothmanCommandHandler(
+            registry=self._registry,
+            sync_service=sync_service,
+            store=self._store,
+            provisioner=provisioner,
+            messages=self._bot_messages,
+        )
+        self.tree.add_command(handler.group)
+        self._scheduler = BugChaserScheduler(self._registry, sync_service)
+
+        if self._settings.command_guild_id:
+            guild = discord.Object(id=self._settings.command_guild_id)
+            self.tree.copy_global_to(guild=guild)
+            await self.tree.sync(guild=guild)
+        else:
+            await self.tree.sync()
+
+    async def on_ready(self) -> None:
+        if not self._startup_initialized:
+            try:
+                await assert_configured_tags_exist_on_forums(self, self._registry.all)
+            except ValueError:
+                logger.exception("Forum configuration validation failed; stopping client.")
+                await self.close()
+                return
+            self._startup_initialized = True
+            if self._scheduler is not None:
+                self._scheduler.start()
+
+        logger.info("bug-chaser logged in as %s", self.user)
+
+    async def on_guild_join(self, guild: discord.Guild) -> None:
+        gj = self._bot_messages.guild_join
+        if not gj.enabled or not gj.message.strip():
             return
 
-        action = config.actions.get(action_name)
-        if action is None:
-            return
+        channel: discord.abc.Messageable | None = None
+        if gj.channel_id is not None:
+            raw = guild.get_channel(gj.channel_id)
+            if isinstance(raw, discord.abc.Messageable):
+                channel = raw
 
-        edit_kwargs: dict[str, object] = {}
-        if automation.auto_tag:
-            applied_tags = self._desired_tags(
-                thread,
-                action,
+        if channel is None:
+            sys_ch = guild.system_channel
+            if isinstance(sys_ch, discord.abc.Messageable):
+                channel = sys_ch
+
+        if channel is None:
+            me = guild.me
+            for text_ch in guild.text_channels:
+                if me is not None and text_ch.permissions_for(me).send_messages:
+                    channel = text_ch
+                    break
+
+        if channel is None:
+            logger.warning(
+                "Guild join message skipped (no channel): guild_id=%s",
+                guild.id,
             )
-            if applied_tags is not None:
-                edit_kwargs["applied_tags"] = applied_tags
-        final_edit_kwargs: dict[str, object] = {}
-        if automation.auto_archive and action.archive:
-            final_edit_kwargs["archived"] = True
-        if automation.auto_lock and action.lock:
-            final_edit_kwargs["locked"] = True
-        if action.reopen:
-            final_edit_kwargs["archived"] = False
-            final_edit_kwargs["locked"] = False
+            return
 
-        sent_comment = False
-        if automation.auto_comment and action.add_comment:
-            await thread.send(action.add_comment)
-            sent_comment = True
-        if edit_kwargs:
-            await thread.edit(**edit_kwargs)
-        if sent_comment and final_edit_kwargs.get("archived") is True:
-            await asyncio.sleep(self._archive_delay_seconds)
-        if final_edit_kwargs:
-            await thread.edit(**final_edit_kwargs)
+        me = guild.me
+        if (
+            me is not None
+            and hasattr(channel, "permissions_for")
+            and not channel.permissions_for(me).send_messages
+        ):
+            logger.warning(
+                "Guild join message skipped (no permission): guild_id=%s channel_id=%s",
+                guild.id,
+                getattr(channel, "id", None),
+            )
+            return
 
-    def _desired_tags(
+        try:
+            await channel.send(gj.message)
+        except discord.HTTPException:
+            logger.exception(
+                "Failed to send guild join message: guild_id=%s",
+                guild.id,
+            )
+
+    async def on_thread_update(self, before: discord.Thread, after: discord.Thread) -> None:
+        await self._maybe_apply_automation(before, after)
+
+    async def _maybe_apply_automation(
         self,
-        thread: discord.Thread,
-        action: ActionRule,
-    ) -> list[discord.ForumTag] | None:
+        before: discord.Thread,
+        after: discord.Thread,
+    ) -> None:
+        if after.parent_id is None:
+            return
+        try:
+            config = self._registry.get_by_channel_id(after.parent_id)
+        except KeyError:
+            return
+
+        before_snapshot = self._build_thread_update_snapshot(before)
+        after_snapshot = self._build_thread_update_snapshot(after)
+        action_name = action_name_for_added_tags(
+            config,
+            before_snapshot.tags,
+            after_snapshot.tags,
+        )
+        if action_name is None:
+            before_status = self._rule_engine.evaluate(config, before_snapshot)
+            after_status = self._rule_engine.evaluate(config, after_snapshot)
+            if not should_apply_status_action(before_status, after_status):
+                return
+            action_name = action_name_for_status(after_status)
+
+        if action_name:
+            await self._thread_manager.apply_action(config, after, action_name)
+
+    def _build_thread_update_snapshot(self, thread: discord.Thread) -> ThreadSnapshot:
         parent = thread.parent
-        if not isinstance(parent, discord.ForumChannel):
-            return None
+        available_tags = (
+            tuple(tag.name for tag in parent.available_tags)
+            if isinstance(parent, discord.ForumChannel)
+            else None
+        )
+        return ThreadSnapshot(
+            thread_id=thread.id,
+            forum_channel_id=thread.parent_id or 0,
+            title=thread.name,
+            body="",
+            author_id=None,
+            author_name=None,
+            created_at=thread.created_at,
+            tags=tuple(tag.name for tag in thread.applied_tags),
+            available_tags=available_tags,
+            reply_count=max((thread.message_count or 0) - 1, 0),
+            archived=thread.archived,
+            locked=thread.locked,
+        )
 
-        current = {tag.name: tag for tag in thread.applied_tags}
-        available = {tag.name: tag for tag in parent.available_tags}
-        for tag_name in action.remove_tags:
-            current.pop(tag_name, None)
-        for tag_name in action.add_tags:
-            # Forum-specific YAML may mention tags that have not been created yet.
-            tag = available.get(tag_name)
-            if tag is not None:
-                current[tag.name] = tag
-            else:
-                logger.warning(
-                    "Configured action tag is not available in forum. thread_id=%s tag=%s",
-                    thread.id,
-                    tag_name,
-                )
-
-        desired = list(current.values())
-        if {tag.name for tag in desired} == {tag.name for tag in thread.applied_tags}:
+    def _build_google_clients(self, settings: AppSettings) -> GoogleClients | None:
+        if settings.google_service_account_file is None:
             return None
-        return desired
+        return GoogleClients(settings.google_service_account_file)

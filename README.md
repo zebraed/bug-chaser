@@ -188,11 +188,11 @@ Botが有効なチャンネルで以下のコマンドが使用可能です。
 
 ## Discordモジュール構成
 
-- `bug_chaser.discord.lady`: エントリーポイント
+- `bug_chaser.discord.guard`: エントリーポイント
 - `bug_chaser.discord.bird`: フォーラムスレッド収集
 - `bug_chaser.discord.gloop`: 投稿情報の正規化
 - `bug_chaser.discord.mothman`: `/bugchaser` コマンド定義
-- `bug_chaser.discord.guard`: Discord 側の管理操作
+- `bug_chaser.discord.lady`: Discord 側の管理操作
 
 
 ## ライセンス

@@ -6,7 +6,7 @@ from bug_chaser.config.bot_messages import load_bot_messages
 from bug_chaser.config.forum import ForumConfig
 from bug_chaser.config.loader import ForumConfigLoader
 from bug_chaser.core.settings import AppSettings
-from bug_chaser.discord.lady import ShadowLadyGateway
+from bug_chaser.discord.guard import GuardRobotGateway
 from bug_chaser.storage.sqlite_store import SQLiteStore
 
 
@@ -46,7 +46,7 @@ def main() -> None:
         _restore_runtime_flags(store, config)
 
     bot_messages = load_bot_messages(settings)
-    client = ShadowLadyGateway(
+    client = GuardRobotGateway(
         settings=settings,
         configs=configs,
         store=store,

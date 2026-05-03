@@ -1,72 +1,74 @@
-from bug_chaser.config.forum import ForumConfig
-from bug_chaser.core.models import ThreadStatus
-from bug_chaser.discord.lady import (
-    action_name_for_added_tags,
-    action_name_for_status,
-    should_apply_status_action,
-)
+import asyncio
+
+from bug_chaser.config.forum import ActionRule, ForumConfig
+from bug_chaser.discord.lady import ShadowLadyThreadManager
 
 
-def test_status_action_names() -> None:
-    assert action_name_for_status("duplicate") == "when_duplicate"
-    assert action_name_for_status("in_progress") == "when_in_progress"
-    assert action_name_for_status("exported") == "when_exported"
-    assert action_name_for_status("closed") == "when_closed"
-    assert action_name_for_status("custom_state") == "when_custom_state"
-    assert action_name_for_status(ThreadStatus.OPEN.value) is None
-    assert action_name_for_status(ThreadStatus.UNKNOWN.value) is None
-
-
-def test_same_status_does_not_reapply_action() -> None:
-    for s in ("open", "closed", "in_progress", "unknown"):
-        assert not should_apply_status_action(s, s)
-
-
-def test_status_transition_applies_action_only_for_actionable_status() -> None:
-    assert should_apply_status_action(ThreadStatus.OPEN.value, "closed")
-    assert should_apply_status_action(ThreadStatus.OPEN.value, "duplicate")
-    assert should_apply_status_action(ThreadStatus.OPEN.value, "in_progress")
-    assert not should_apply_status_action("closed", ThreadStatus.OPEN.value)
-
-
-def test_added_state_tag_selects_action_even_with_conflicting_tag() -> None:
-    config = _forum_config()
-
-    action_name = action_name_for_added_tags(
-        config,
-        before_tags=("解決済み",),
-        after_tags=("解決済み", "対応中"),
+def test_action_rule_loads_remove_tags() -> None:
+    action = ActionRule.model_validate(
+        {
+            "add_comment": "解決済みです。",
+            "remove_tags": ["重複", "対応中"],
+            "add_tags": ["解決済み"],
+            "archive": True,
+        }
     )
 
-    assert action_name == "when_in_progress"
+    assert action.remove_tags == ["重複", "対応中"]
+    assert action.add_tags == ["解決済み"]
+    assert action.archive is True
 
 
-def test_no_added_state_tag_does_not_select_action() -> None:
-    config = _forum_config()
+def test_action_rule_does_not_infer_remove_tags() -> None:
+    action = ActionRule.model_validate({"add_comment": "対応中です。"})
 
-    action_name = action_name_for_added_tags(
-        config,
-        before_tags=("解決済み", "対応中"),
-        after_tags=("解決済み", "対応中"),
-    )
-
-    assert action_name is None
+    assert action.remove_tags == []
 
 
-def _forum_config() -> ForumConfig:
-    return ForumConfig.model_validate(
+def test_action_sends_comment_before_archiving() -> None:
+    config = ForumConfig.model_validate(
         {
             "forum": {
                 "key": "example",
                 "guild_id": 1,
                 "channel_id": 2,
+                "automation": {
+                    "enabled": True,
+                    "auto_comment": True,
+                    "auto_archive": True,
+                },
             },
-            "states": {
-                "duplicate": {"tags": ["重複"]},
-                "in_progress": {"tags": ["対応中"]},
-                "exported": {"tags": ["Wiki転記済み"]},
-                "closed": {"tags": ["解決済み"]},
+            "state_order": [],
+            "actions": {
+                "when_closed": {
+                    "add_comment": "解決済みです。",
+                    "archive": True,
+                },
             },
-            "state_order": ["duplicate", "in_progress", "exported", "closed"],
         }
     )
+    thread = _FakeThread()
+
+    asyncio.run(
+        ShadowLadyThreadManager(archive_delay_seconds=0).apply_action(
+            config,
+            thread,
+            "when_closed",
+        )
+    )
+
+    assert thread.calls == [
+        ("send", {"content": "解決済みです。"}),
+        ("edit", {"archived": True}),
+    ]
+
+
+class _FakeThread:
+    def __init__(self) -> None:
+        self.calls: list[tuple[str, dict[str, object]]] = []
+
+    async def send(self, content: str) -> None:
+        self.calls.append(("send", {"content": content}))
+
+    async def edit(self, **kwargs: object) -> None:
+        self.calls.append(("edit", kwargs))

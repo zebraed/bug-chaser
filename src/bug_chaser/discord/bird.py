@@ -1,3 +1,8 @@
+# -*- coding: utf-8 -*-
+"""
+Shadow Bird appears !
+Collector for forum threads.
+"""
 from __future__ import annotations
 
 import discord
@@ -10,6 +15,15 @@ class ShadowBirdCollector:
         self._client = client
 
     async def collect(self, channel_id: int) -> list[discord.Thread]:
+        """
+        Collects active and archived forum threads.
+
+        Args:
+            channel_id: The ID of the forum channel to collect threads from.
+
+        Returns:
+            A list of active and archived forum threads.
+        """
         channel = self._client.get_channel(channel_id)
         if channel is None:
             channel = await self._client.fetch_channel(channel_id)

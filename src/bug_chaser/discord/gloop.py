@@ -1,3 +1,7 @@
+# -*- coding: utf-8 -*-
+"""
+Builder for normalized forum thread snapshots.
+"""
 from __future__ import annotations
 
 from collections.abc import Sequence

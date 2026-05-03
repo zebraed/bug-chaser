@@ -1,3 +1,7 @@
+# -*- coding: utf-8 -*-
+"""
+Registry for forum configurations.
+"""
 from __future__ import annotations
 
 from bug_chaser.config.forum import ForumConfig

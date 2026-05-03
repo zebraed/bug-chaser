@@ -1,3 +1,7 @@
+# -*- coding: utf-8 -*-
+"""
+Loader for per-forum YAML files.
+"""
 from __future__ import annotations
 
 from pathlib import Path
@@ -16,6 +20,10 @@ class ForumConfigLoader:
         self._config_dir = config_dir
 
     def load_all(self) -> list[LoadedForumConfig]:
+        """
+        Load all forum config files.
+        Exclude example template files.
+        """
         if not self._config_dir.exists():
             msg = f"Config directory does not exist: {self._config_dir}"
             raise FileNotFoundError(msg)
@@ -36,6 +44,9 @@ class ForumConfigLoader:
         return loaded
 
     def load(self, path: Path) -> LoadedForumConfig:
+        """
+        Load a forum config file.
+        """
         with path.open("r", encoding="utf-8") as file:
             raw = yaml.safe_load(file) or {}
         return LoadedForumConfig(path=path, config=ForumConfig.model_validate(raw))

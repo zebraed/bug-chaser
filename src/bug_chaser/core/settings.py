@@ -1,3 +1,7 @@
+# -*- coding: utf-8 -*-
+"""
+Runtime settings for the application.
+"""
 from __future__ import annotations
 
 from pathlib import Path

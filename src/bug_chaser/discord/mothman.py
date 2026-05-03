@@ -1,3 +1,7 @@
+# -*- coding: utf-8 -*-
+"""
+Command handler for bug-chaser.
+"""
 from __future__ import annotations
 
 import discord

@@ -1,3 +1,7 @@
+# -*- coding: utf-8 -*-
+"""
+Core domain models.
+"""
 from __future__ import annotations
 
 from dataclasses import dataclass, field
@@ -10,7 +14,7 @@ class ThreadStatus(str, Enum):
     OPEN = "open"
     DUPLICATE = "duplicate"
     IN_PROGRESS = "in_progress"
-    WIKI_EXPORTED = "wiki_exported"
+    EXPORTED = "exported"
     CLOSED = "closed"
 
 

@@ -1,3 +1,7 @@
+# -*- coding: utf-8 -*-
+"""
+Forum configuration models.
+"""
 from __future__ import annotations
 
 from pathlib import Path
@@ -69,7 +73,7 @@ class ForumConfig(BaseModel):
     @field_validator("states")
     @classmethod
     def ensure_known_state_names(cls, value: dict[str, StateRule]) -> dict[str, StateRule]:
-        allowed = {"duplicate", "in_progress", "wiki_exported", "closed", "open"}
+        allowed = {"duplicate", "in_progress", "exported", "closed", "open"}
         unknown = set(value) - allowed
         if unknown:
             msg = f"Unknown state rule names: {', '.join(sorted(unknown))}"

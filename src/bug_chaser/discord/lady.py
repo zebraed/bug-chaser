@@ -1,3 +1,7 @@
+# -*- coding: utf-8 -*-
+"""
+Discord Gateway for bug-chaser.
+"""
 from __future__ import annotations
 
 import logging
@@ -27,18 +31,18 @@ logger = logging.getLogger(__name__)
 ACTION_BY_STATUS = {
     ThreadStatus.DUPLICATE: "when_duplicate",
     ThreadStatus.IN_PROGRESS: "when_in_progress",
-    ThreadStatus.WIKI_EXPORTED: "when_wiki_exported",
+    ThreadStatus.EXPORTED: "when_exported",
     ThreadStatus.CLOSED: "when_closed",
 }
 
 ACTION_BY_STATE_NAME = {
     "duplicate": "when_duplicate",
     "in_progress": "when_in_progress",
-    "wiki_exported": "when_wiki_exported",
+    "exported": "when_exported",
     "closed": "when_closed",
 }
 
-STATE_MATCH_ORDER = ("duplicate", "wiki_exported", "closed", "in_progress")
+STATE_MATCH_ORDER = ("duplicate", "exported", "closed", "in_progress")
 
 
 def action_name_for_status(status: ThreadStatus) -> str | None:

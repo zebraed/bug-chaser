@@ -17,8 +17,8 @@ class RuleEngine:
 
         if self._matches_tags(config, "duplicate", tag_set):
             return ThreadStatus.DUPLICATE
-        if self._matches_tags(config, "wiki_exported", tag_set):
-            return ThreadStatus.WIKI_EXPORTED
+        if self._matches_tags(config, "exported", tag_set):
+            return ThreadStatus.EXPORTED
         if self._matches_tags(config, "closed", tag_set):
             return ThreadStatus.CLOSED
         if self._matches_tags(config, "in_progress", tag_set):

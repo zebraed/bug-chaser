@@ -6,8 +6,6 @@ Default path: ``<parent of BUG_CHASER_CONFIG_DIR>/bot_messages.yaml``
 
 Override with ``BUG_CHASER_BOT_MESSAGES_FILE`` (must exist when set).
 """
-from __future__ import annotations
-
 import yaml
 from pydantic import BaseModel, ConfigDict, Field
 

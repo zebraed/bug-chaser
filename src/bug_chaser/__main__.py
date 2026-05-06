@@ -1,5 +1,3 @@
-from __future__ import annotations
-
 import logging
 
 from bug_chaser.config.bot_messages import load_bot_messages

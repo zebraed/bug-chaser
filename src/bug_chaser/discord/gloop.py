@@ -3,8 +3,6 @@ Gloop Gloop Gloop
 
 Builder for normalized forum thread snapshots.
 """
-from __future__ import annotations
-
 from collections.abc import Sequence
 
 import discord

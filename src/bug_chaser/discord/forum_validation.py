@@ -1,8 +1,6 @@
 """
 Startup checks: YAML tag names must exist on the parent forum channel.
 """
-from __future__ import annotations
-
 import discord
 
 from bug_chaser.config.forum import ForumConfig

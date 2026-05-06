@@ -1,12 +1,7 @@
-from __future__ import annotations
-
 import logging
-from typing import TYPE_CHECKING
 
 from bug_chaser.config.forum import ForumConfig
-
-if TYPE_CHECKING:
-    from bug_chaser.sheets.google import GoogleClients
+from bug_chaser.sheets.google import GoogleClients
 
 logger = logging.getLogger(__name__)
 

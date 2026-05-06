@@ -3,8 +3,6 @@ Shadow Lady is always watching YOU!
 
 Manager for applying forum management actions.
 """
-from __future__ import annotations
-
 import asyncio
 import logging
 

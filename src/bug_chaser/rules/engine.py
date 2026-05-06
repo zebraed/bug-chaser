@@ -1,5 +1,3 @@
-from __future__ import annotations
-
 import logging
 
 from bug_chaser.config.forum import ForumConfig

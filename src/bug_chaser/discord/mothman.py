@@ -3,8 +3,6 @@ I love Roger Scarberry's sketch of Mothman.
 
 Command handler for bug-chaser.
 """
-from __future__ import annotations
-
 import discord
 from discord import app_commands
 

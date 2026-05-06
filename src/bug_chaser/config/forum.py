@@ -1,11 +1,10 @@
 """
 Forum configuration models.
 """
-from __future__ import annotations
-
 from pathlib import Path
 
 from pydantic import BaseModel, ConfigDict, Field, field_validator, model_validator
+from typing_extensions import Self
 
 from bug_chaser.core.identifiers import (
     DISCORD_FORUM_MAX_AVAILABLE_TAGS,
@@ -30,7 +29,7 @@ class SheetsConfig(BaseModel):
     progress_sheet_name: str = "Progress"
 
     @model_validator(mode="after")
-    def validate_editor_when_configured(self) -> SheetsConfig:
+    def validate_editor_when_configured(self) -> Self:
         if self.configured and not self.editor_emails:
             msg = "At least one editor email is required when sheets.configured is true."
             raise ValueError(msg)
@@ -89,7 +88,7 @@ class ForumConfig(BaseModel):
     model_config = ConfigDict(extra="forbid")
 
     @model_validator(mode="after")
-    def validate_states_and_order(self) -> ForumConfig:
+    def validate_states_and_order(self) -> Self:
         if len(self.states) > DISCORD_FORUM_MAX_AVAILABLE_TAGS:
             msg = (
                 f"At most {DISCORD_FORUM_MAX_AVAILABLE_TAGS} state entries are allowed "

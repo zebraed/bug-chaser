@@ -1,12 +1,6 @@
-from __future__ import annotations
-
-from typing import TYPE_CHECKING
-
 from bug_chaser.config.forum import ForumConfig
 from bug_chaser.core.models import ThreadSnapshot
-
-if TYPE_CHECKING:
-    from bug_chaser.sheets.google import GoogleClients
+from bug_chaser.sheets.google import GoogleClients
 
 MASTER_HEADERS = [
     "Thread ID",

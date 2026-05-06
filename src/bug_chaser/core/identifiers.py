@@ -1,8 +1,6 @@
 """
 Validated identifiers for forum state keys (YAML `states` keys).
 """
-from __future__ import annotations
-
 import re
 
 # Discord API: forum channel `available_tags` is limited to 20 per channel.

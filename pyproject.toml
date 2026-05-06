@@ -30,7 +30,7 @@ dev = [
 bug-chaser = "bug_chaser.__main__:main"
 
 [tool.hatch.build.targets.wheel]
-packages = ["src/bug_chaser"]
+packages = ["bug_chaser"]
 
 [tool.ruff]
 line-length = 100
@@ -40,5 +40,5 @@ target-version = "py310"
 select = ["E", "F", "I", "UP", "B"]
 
 [tool.pytest.ini_options]
-pythonpath = ["src"]
+pythonpath = ["."]
 testpaths = ["tests"]

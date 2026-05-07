@@ -4,6 +4,7 @@
 #   ./config/<env>/bot_messages.yaml   （任意。無ければアプリのデフォルト文言）
 #   ./data/<env>/                     （SQLite など。空でよい）
 #   ./secrets/<env>/                  （例: Google SA JSON）
+#   ./logs/<env>/                     （任意。FLANNEL_LOG_FILE を設定したとき）
 #
 # 使い方:
 #   docker compose -f docker-compose.example.yml --env-file .env.prod up -d flannel-prod
@@ -27,6 +28,8 @@ services:
       - ./config/prod:/app/config:ro
       - ./data/prod:/app/data
       - ./secrets/prod:/app/secrets:ro
+      # FLANNEL_LOG_FILE=/app/logs/flannel.log のときホスト側にログを残す
+      - ./logs/prod:/app/logs
     restart: unless-stopped
 
   flannel-bot-dev:
@@ -40,4 +43,5 @@ services:
       - ./config/dev:/app/config:ro
       - ./data/dev:/app/data
       - ./secrets/dev:/app/secrets:ro
+      - ./logs/dev:/app/logs
     restart: unless-stopped

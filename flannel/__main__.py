@@ -2,6 +2,8 @@
 Main entry point for flannel.
 """
 import logging
+import sys
+from logging.handlers import RotatingFileHandler
 
 from flannel.config.bot_messages import load_bot_messages
 from flannel.config.forum import ForumConfig
@@ -36,13 +38,36 @@ def _restore_runtime_flags(store: SQLiteStore, config: ForumConfig) -> None:
         config.forum.automation.auto_lock = flags["auto_lock"]
 
 
-def main() -> None:
-    """Main entry point func for flannel."""
+def _configure_logging(settings: AppSettings) -> None:
+    """Set up root logger (stderr, and optionally a rotating log file).
+
+    Args:
+        settings (AppSettings): Application settings.
+    """
+    fmt = "%(asctime)s %(levelname)s %(name)s: %(message)s"
+    handlers: list[logging.Handler] = [logging.StreamHandler(sys.stderr)]
+    if settings.log_file is not None:
+        settings.log_file.parent.mkdir(parents=True, exist_ok=True)
+        file_handler = RotatingFileHandler(
+            settings.log_file,
+            maxBytes=10 * 1024 * 1024,
+            backupCount=5,
+            encoding="utf-8",
+        )
+        file_handler.setFormatter(logging.Formatter(fmt))
+        handlers.append(file_handler)
     logging.basicConfig(
         level=logging.INFO,
-        format="%(asctime)s %(levelname)s %(name)s: %(message)s",
+        format=fmt,
+        handlers=handlers,
+        force=True,
     )
+
+
+def main() -> None:
+    """Main entry point func for flannel."""
     settings = AppSettings()
+    _configure_logging(settings)
     loaded_configs = ForumConfigLoader(settings.config_dir).load_all()
     configs = [loaded.config for loaded in loaded_configs]
 

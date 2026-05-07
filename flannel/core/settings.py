@@ -30,6 +30,10 @@ class AppSettings(BaseSettings):
         default=None,
         alias="FLANNEL_BOT_MESSAGES_FILE",
     )
+    log_file: Path | None = Field(
+        default=None,
+        alias="FLANNEL_LOG_FILE",
+    )
 
     model_config = SettingsConfigDict(env_file=".env", extra="ignore")
 
@@ -40,6 +44,24 @@ class AppSettings(BaseSettings):
         value: object,
     ) -> object:
         """Convert an empty Google service account file to None.
+
+        Args:
+            value (object): The value to convert.
+
+        Returns:
+            The converted value.
+        """
+        if value == "":
+            return None
+        return value
+
+    @field_validator("log_file", mode="before")
+    @classmethod
+    def empty_log_file_is_none(
+        cls,
+        value: object,
+    ) -> object:
+        """Convert an empty log file path to None.
 
         Args:
             value (object): The value to convert.

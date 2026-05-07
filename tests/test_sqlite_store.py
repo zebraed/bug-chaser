@@ -100,3 +100,30 @@ def test_guild_join_message_delivery_marker(tmp_path: Path) -> None:
     store.mark_guild_join_message_sent(123)
 
     assert store.has_sent_guild_join_message(123)
+
+
+def test_guild_join_pending_and_cleared_on_sent(tmp_path: Path) -> None:
+    store = SQLiteStore(tmp_path / "db.sqlite3")
+    store.initialize()
+
+    assert store.get_guild_join_pending_channel_id(7) is None
+
+    store.set_guild_join_pending(7, 99)
+    store.set_guild_join_pending(7, 100)
+
+    assert store.get_guild_join_pending_channel_id(7) == 100
+
+    store.mark_guild_join_message_sent(7)
+
+    assert store.get_guild_join_pending_channel_id(7) is None
+    assert store.has_sent_guild_join_message(7)
+
+
+def test_clear_guild_join_pending(tmp_path: Path) -> None:
+    store = SQLiteStore(tmp_path / "db.sqlite3")
+    store.initialize()
+
+    store.set_guild_join_pending(1, 2)
+    store.clear_guild_join_pending(1)
+
+    assert store.get_guild_join_pending_channel_id(1) is None

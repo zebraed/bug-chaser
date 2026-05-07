@@ -8,7 +8,7 @@ import logging
 import discord
 from discord import app_commands
 
-from bug_chaser.config.bot_messages import BotMessages
+from bug_chaser.config.bot_messages import BotMessages, GuildJoinStrings
 from bug_chaser.config.forum import ForumConfig
 from bug_chaser.config.registry import ForumRegistry
 from bug_chaser.core.models import ThreadSnapshot, ThreadStatus
@@ -205,25 +205,82 @@ class GuardRobotGateway(discord.Client):
             if not self._store.has_sent_guild_join_message(guild.id):
                 await self._maybe_send_guild_join_message(guild)
 
-    async def _maybe_send_guild_join_message(self, guild: discord.Guild) -> None:
-        """Send the configured guild join message once per guild."""
-        gj = self._bot_messages.guild_join
-        if not gj.enabled or not gj.message.strip():
+    def _reconcile_guild_join_pending(self, guild_id: int, gj: GuildJoinStrings) -> None:
+        """Drop stale explicit-channel retry rows (config changed)."""
+        if gj.channel_id is None:
+            self._store.clear_guild_join_pending(guild_id)
+            return
+        pending = self._store.get_guild_join_pending_channel_id(guild_id)
+        if pending is not None and pending != gj.channel_id:
+            self._store.clear_guild_join_pending(guild_id)
+
+    async def _send_guild_join_explicit_channel(
+        self,
+        guild: discord.Guild,
+        gj: GuildJoinStrings,
+        target_id: int,
+    ) -> None:
+        """Send only to ``channel_id``; record pending retry if blocked by permissions."""
+        me = guild.me
+        if me is None:
+            logger.warning(
+                "Guild join message skipped (no member): guild_id=%s",
+                guild.id,
+            )
             return
 
-        if self._store.has_sent_guild_join_message(guild.id):
+        raw = guild.get_channel(target_id)
+        if raw is None or not isinstance(raw, discord.abc.Messageable):
+            logger.warning(
+                "Guild join explicit channel missing: guild_id=%s channel_id=%s",
+                guild.id,
+                target_id,
+            )
+            self._store.set_guild_join_pending(guild.id, target_id)
             return
 
+        if hasattr(raw, "permissions_for"):
+            perms = raw.permissions_for(me)
+            if not perms.view_channel or not perms.send_messages:
+                logger.warning(
+                    "Guild join explicit channel lacks permission: "
+                    "guild_id=%s channel_id=%s",
+                    guild.id,
+                    target_id,
+                )
+                self._store.set_guild_join_pending(guild.id, target_id)
+                return
+
+        try:
+            await raw.send(gj.message)
+        except discord.Forbidden:
+            logger.exception(
+                "Guild join Forbidden on explicit channel: guild_id=%s channel_id=%s",
+                guild.id,
+                target_id,
+            )
+            self._store.set_guild_join_pending(guild.id, target_id)
+            return
+        except discord.HTTPException:
+            logger.exception(
+                "Failed guild join on explicit channel: guild_id=%s channel_id=%s",
+                guild.id,
+                target_id,
+            )
+            return
+
+        self._store.mark_guild_join_message_sent(guild.id)
+
+    async def _send_guild_join_fallback_channels(
+        self,
+        guild: discord.Guild,
+        gj: GuildJoinStrings,
+    ) -> None:
+        """System channel, then first writable text channel (no ``channel_id``)."""
         channel: discord.abc.Messageable | None = None
-        if gj.channel_id is not None:
-            raw = guild.get_channel(gj.channel_id)
-            if isinstance(raw, discord.abc.Messageable):
-                channel = raw
-
-        if channel is None:
-            sys_ch = guild.system_channel
-            if isinstance(sys_ch, discord.abc.Messageable):
-                channel = sys_ch
+        sys_ch = guild.system_channel
+        if isinstance(sys_ch, discord.abc.Messageable):
+            channel = sys_ch
 
         if channel is None:
             me = guild.me
@@ -262,6 +319,77 @@ class GuardRobotGateway(discord.Client):
             return
 
         self._store.mark_guild_join_message_sent(guild.id)
+
+    async def _maybe_send_guild_join_message(self, guild: discord.Guild) -> None:
+        """Send the configured guild join message once per guild."""
+        gj = self._bot_messages.guild_join
+        if not gj.enabled or not gj.message.strip():
+            self._store.clear_guild_join_pending(guild.id)
+            return
+
+        if self._store.has_sent_guild_join_message(guild.id):
+            return
+
+        self._reconcile_guild_join_pending(guild.id, gj)
+
+        if gj.channel_id is not None:
+            await self._send_guild_join_explicit_channel(guild, gj, gj.channel_id)
+        else:
+            await self._send_guild_join_fallback_channels(guild, gj)
+
+    async def on_guild_channel_update(
+        self,
+        before: discord.abc.GuildChannel,
+        after: discord.abc.GuildChannel,
+    ) -> None:
+        """Retry guild join after channel permission / visibility may have changed."""
+        gj = self._bot_messages.guild_join
+        if (
+            not gj.enabled
+            or not gj.message.strip()
+            or gj.channel_id is None
+        ):
+            return
+        guild = after.guild
+        pending = self._store.get_guild_join_pending_channel_id(guild.id)
+        if pending is None or pending != after.id or after.id != gj.channel_id:
+            return
+        if self._store.has_sent_guild_join_message(guild.id):
+            return
+        await self._maybe_send_guild_join_message(guild)
+
+    async def on_member_update(self, before: discord.Member, after: discord.Member) -> None:
+        """Retry when the bot member object changes (e.g. roles)."""
+        if self.user is None or after.id != self.user.id:
+            return
+        gj = self._bot_messages.guild_join
+        if (
+            not gj.enabled
+            or not gj.message.strip()
+            or gj.channel_id is None
+        ):
+            return
+        if self._store.get_guild_join_pending_channel_id(after.guild.id) is None:
+            return
+        if self._store.has_sent_guild_join_message(after.guild.id):
+            return
+        await self._maybe_send_guild_join_message(after.guild)
+
+    async def on_guild_role_update(self, before: discord.Role, after: discord.Role) -> None:
+        """Retry when a role permission mask changes (may affect channel access)."""
+        gj = self._bot_messages.guild_join
+        if (
+            not gj.enabled
+            or not gj.message.strip()
+            or gj.channel_id is None
+        ):
+            return
+        guild = after.guild
+        if self._store.get_guild_join_pending_channel_id(guild.id) is None:
+            return
+        if self._store.has_sent_guild_join_message(guild.id):
+            return
+        await self._maybe_send_guild_join_message(guild)
 
     async def on_thread_update(self, before: discord.Thread, after: discord.Thread) -> None:
         """Handle the Thread Update event.

@@ -7,6 +7,7 @@ Database schema:
     - feature_flags: Per-forum feature flags.
     - sync_runs: Sync run history.
     - guild_join_messages: Guild join message delivery history.
+    - guild_join_pending: Guild join retry wait (explicit channel_id only).
 
 #TODO Do we need to separate the schema into other files?
 """
@@ -78,6 +79,11 @@ class SQLiteStore:
                 CREATE TABLE IF NOT EXISTS guild_join_messages (
                     guild_id INTEGER PRIMARY KEY,
                     sent_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP
+                );
+
+                CREATE TABLE IF NOT EXISTS guild_join_pending (
+                    guild_id INTEGER PRIMARY KEY,
+                    channel_id INTEGER NOT NULL
                 );
                 """
             )
@@ -313,6 +319,44 @@ class SQLiteStore:
                 VALUES (?)
                 ON CONFLICT(guild_id) DO NOTHING
                 """,
+                (guild_id,),
+            )
+            connection.execute(
+                "DELETE FROM guild_join_pending WHERE guild_id = ?",
+                (guild_id,),
+            )
+
+    def get_guild_join_pending_channel_id(self, guild_id: int) -> int | None:
+        """Return channel_id waiting for permission, if any."""
+        with self._connect() as connection:
+            row = connection.execute(
+                """
+                SELECT channel_id
+                FROM guild_join_pending
+                WHERE guild_id = ?
+                """,
+                (guild_id,),
+            ).fetchone()
+        return int(row[0]) if row is not None else None
+
+    def set_guild_join_pending(self, guild_id: int, channel_id: int) -> None:
+        """Remember to retry guild join when channel permissions allow sending."""
+        with self._connect() as connection:
+            connection.execute(
+                """
+                INSERT INTO guild_join_pending (guild_id, channel_id)
+                VALUES (?, ?)
+                ON CONFLICT(guild_id) DO UPDATE SET
+                    channel_id = excluded.channel_id
+                """,
+                (guild_id, channel_id),
+            )
+
+    def clear_guild_join_pending(self, guild_id: int) -> None:
+        """Drop retry state for a guild."""
+        with self._connect() as connection:
+            connection.execute(
+                "DELETE FROM guild_join_pending WHERE guild_id = ?",
                 (guild_id,),
             )
 

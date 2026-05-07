@@ -1,7 +1,7 @@
 import pytest
 
-from bug_chaser.config.forum import ForumConfig
-from bug_chaser.config.registry import ForumRegistry
+from flannel.config.forum import ForumConfig
+from flannel.config.registry import ForumRegistry
 
 
 def _config(key: str, channel_id: int) -> ForumConfig:

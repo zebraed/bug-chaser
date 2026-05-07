@@ -1,7 +1,7 @@
 import asyncio
 
-from bug_chaser.config.forum import ActionRule, ForumConfig
-from bug_chaser.discord.lady import ShadowLadyThreadManager
+from flannel.config.forum import ActionRule, ForumConfig
+from flannel.discord.lady import ShadowLadyThreadManager
 
 
 def test_action_rule_loads_remove_tags() -> None:

@@ -3,10 +3,10 @@ from datetime import datetime, timezone
 from types import SimpleNamespace
 from typing import Any
 
-from bug_chaser.config.forum import ForumConfig
-from bug_chaser.core.models import ThreadSnapshot
-from bug_chaser.rules.engine import RuleEngine
-from bug_chaser.sync.service import SyncService
+from flannel.config.forum import ForumConfig
+from flannel.core.models import ThreadSnapshot
+from flannel.rules.engine import RuleEngine
+from flannel.sync.service import SyncService
 
 
 def _config(sheets_enabled: bool = False) -> ForumConfig:

@@ -1,4 +1,4 @@
-# Bug-chaser 用 Docker Compose サンプル
+# flannel-bot 用 Docker Compose サンプル
 # 配置例（サーバー上の compose のあるディレクトリからの相対パス）:
 #   ./config/<env>/forums/*.yaml
 #   ./config/<env>/bot_messages.yaml   （任意。無ければアプリのデフォルト文言）
@@ -6,17 +6,17 @@
 #   ./secrets/<env>/                  （例: Google SA JSON）
 #
 # 使い方:
-#   docker compose -f docker-compose.example.yml --env-file .env.prod up -d bug-chaser-prod
+#   docker compose -f docker-compose.example.yml --env-file .env.prod up -d flannel-prod
 #   または deploy ディレクトリに compose と env を置き、パスを調整する。
 #
 # 注意:
 # - prod と dev を同時に動かす場合は Discord の Bot token を別々にする（同一 token は同時接続できない）。
-# - Google Sheets を使う場合は BUG_CHASER_GOOGLE_SERVICE_ACCOUNT_FILE にコンテナ内パスを指定する
+# - Google Sheets を使う場合は FLANNEL_GOOGLE_SERVICE_ACCOUNT_FILE にコンテナ内パスを指定する
 #   （例: /app/secrets/google-service-account.json）。
 
 services:
-  bug-chaser-prod:
-    image: bug-chaser:latest
+  flannel-bot-prod:
+    image: flannel-bot:latest
     build:
       context: ..
       dockerfile: Dockerfile
@@ -29,8 +29,8 @@ services:
       - ./secrets/prod:/app/secrets:ro
     restart: unless-stopped
 
-  bug-chaser-dev:
-    image: bug-chaser:latest
+  flannel-bot-dev:
+    image: flannel-bot:latest
     build:
       context: ..
       dockerfile: Dockerfile

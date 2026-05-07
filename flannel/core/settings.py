@@ -9,26 +9,26 @@ from pydantic_settings import BaseSettings, SettingsConfigDict
 
 class AppSettings(BaseSettings):
     """Runtime settings for the application."""
-    discord_token: str = Field(alias="BUG_CHASER_DISCORD_TOKEN")
+    discord_token: str = Field(alias="FLANNEL_DISCORD_TOKEN")
     config_dir: Path = Field(
         default=Path("config/forums"),
-        alias="BUG_CHASER_CONFIG_DIR",
+        alias="FLANNEL_CONFIG_DIR",
     )
     database_path: Path = Field(
-        default=Path("data/bug_chaser.sqlite3"),
-        alias="BUG_CHASER_DB_PATH",
+        default=Path("data/flannel.sqlite3"),
+        alias="FLANNEL_DB_PATH",
     )
     google_service_account_file: Path | None = Field(
         default=None,
-        alias="BUG_CHASER_GOOGLE_SERVICE_ACCOUNT_FILE",
+        alias="FLANNEL_GOOGLE_SERVICE_ACCOUNT_FILE",
     )
     command_guild_id: int | None = Field(
         default=None,
-        alias="BUG_CHASER_COMMAND_GUILD_ID",
+        alias="FLANNEL_COMMAND_GUILD_ID",
     )
     bot_messages_file: Path | None = Field(
         default=None,
-        alias="BUG_CHASER_BOT_MESSAGES_FILE",
+        alias="FLANNEL_BOT_MESSAGES_FILE",
     )
 
     model_config = SettingsConfigDict(env_file=".env", extra="ignore")

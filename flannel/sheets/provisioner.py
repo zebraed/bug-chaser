@@ -5,8 +5,8 @@ Provisioner for spreadsheets for a forum.
 """
 import logging
 
-from bug_chaser.config.forum import ForumConfig
-from bug_chaser.sheets.google import GoogleClients
+from flannel.config.forum import ForumConfig
+from flannel.sheets.google import GoogleClients
 
 logger = logging.getLogger(__name__)
 
@@ -55,7 +55,7 @@ class SpreadsheetProvisioner:
             The spreadsheet id.
         """
         sheets = config.forum.sheets
-        title = f"bug-chaser - {config.forum.key}"
+        title = f"flannel - {config.forum.key}"
         body = {
             "properties": {"title": title},
             "sheets": [

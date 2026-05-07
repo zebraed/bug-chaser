@@ -1,7 +1,7 @@
 """
 Registry for forum configurations.
 """
-from bug_chaser.config.forum import ForumConfig
+from flannel.config.forum import ForumConfig
 
 
 class ForumRegistry:

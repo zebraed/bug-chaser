@@ -5,13 +5,13 @@ from dataclasses import replace
 
 import discord
 
-from bug_chaser.config.forum import ForumConfig
-from bug_chaser.core.models import SyncResult
-from bug_chaser.discord.bird import ShadowBirdCollector
-from bug_chaser.discord.gloop import GloopSnapshotBuilder
-from bug_chaser.rules.engine import RuleEngine
-from bug_chaser.sheets.exporter import SheetExporter
-from bug_chaser.storage.sqlite_store import SQLiteStore
+from flannel.config.forum import ForumConfig
+from flannel.core.models import SyncResult
+from flannel.discord.bird import ShadowBirdCollector
+from flannel.discord.gloop import GloopSnapshotBuilder
+from flannel.rules.engine import RuleEngine
+from flannel.sheets.exporter import SheetExporter
+from flannel.storage.sqlite_store import SQLiteStore
 
 
 class SyncService:

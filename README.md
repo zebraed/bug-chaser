@@ -1,10 +1,10 @@
-# bug-chaser
+# flannel-bot
 
 <img height="300" alt="ふらんねる線画3" src="https://github.com/user-attachments/assets/20244ffb-6e27-4e4e-8c51-6979fe30604f" />
 
 *ぼく、ふらんねる！ もぐもぐ*
 
-Discordのフォーラム投稿を監視し、報告の取得、タグ状態判定、管理補助、Google Sheetsと連携を行うDiscord-Botです。
+flannel-botは、Discordのフォーラム投稿を監視し、報告の取得、タグ状態判定、管理補助、Google Sheetsと連携を行うDiscord-Botです。
 
 ## 主な機能
 
@@ -12,7 +12,7 @@ Discordのフォーラム投稿を監視し、報告の取得、タグ状態判�
 - フォーラムごとの YAML で監視対象、状態ルール、自動アクション、任意の Sheets 連携を設定します。
 - タグの排他制御を提供します。
 - 同期結果をSQLiteに保存します。
-- `/bugchaser` スラッシュコマンドで同期の手動実行や Sheets・自動処理のオンオフができます。
+- `/flannel` スラッシュコマンドで同期の手動実行や Sheets・自動処理のオンオフができます。
 
 - WIP（対応予定）: Google Sheets 連携は任意です。有効にするとフォーラムごとにスプレッドシートを用意でき、Bot が 1枚目にマスターデータを転記し、2枚目は進捗管理用として利用できます。
 
@@ -45,16 +45,16 @@ Copy-Item .env.example .env
 `.env.example` をコピーして `.env` を作成し、ローカル環境に合わせて値を設定します。
 
 
-- `BUG_CHASER_DISCORD_TOKEN`: Discord Developer Portal で発行した Bot token です。
-- `BUG_CHASER_CONFIG_DIR`: フォーラム別 YAML を置くディレクトリです。デフォルトは `config/forums` です。
-- `BUG_CHASER_DB_PATH`: 同期結果を保存する SQLite データベースのパスです。親ディレクトリは起動時に自動作成されます。
-- `BUG_CHASER_GOOGLE_SERVICE_ACCOUNT_FILE`: Google Sheets 連携を使う場合に、Service Account 認証 JSON のパスを指定します。Sheets 連携を使わない場合は空で構いません。
-- `BUG_CHASER_COMMAND_GUILD_ID`: スラッシュコマンドを即時反映したいDiscordサーバーの Guild IDです。未設定の場合はグローバルコマンドとして同期され、反映に時間がかかる場合があります。
-- `BUG_CHASER_BOT_MESSAGES_FILE`: コマンド返信・サーバー参加時メッセージ用 YAML のパスです。**設定した場合はファイルが存在しないと起動に失敗します。** 未設定のときは `config/bot_messages.yaml` があれば読み込み（`BUG_CHASER_CONFIG_DIR` が `config/forums` のとき、`config` 直下）、無ければコード内のデフォルト文を使います。
+- `FLANNEL_DISCORD_TOKEN`: Discord Developer Portal で発行した Bot token です。
+- `FLANNEL_CONFIG_DIR`: フォーラム別 YAML を置くディレクトリです。デフォルトは `config/forums` です。
+- `FLANNEL_DB_PATH`: 同期結果を保存する SQLite データベースのパスです。親ディレクトリは起動時に自動作成されます。
+- `FLANNEL_GOOGLE_SERVICE_ACCOUNT_FILE`: Google Sheets 連携を使う場合に、Service Account 認証 JSON のパスを指定します。Sheets 連携を使わない場合は空で構いません。
+- `FLANNEL_COMMAND_GUILD_ID`: スラッシュコマンドを即時反映したいDiscordサーバーの Guild IDです。未設定の場合はグローバルコマンドとして同期され、反映に時間がかかる場合があります。
+- `FLANNEL_BOT_MESSAGES_FILE`: コマンド返信・サーバー参加時メッセージ用 YAML のパスです。**設定した場合はファイルが存在しないと起動に失敗します。** 未設定のときは `config/bot_messages.yaml` があれば読み込み（`FLANNEL_CONFIG_DIR` が `config/forums` のとき、`config` 直下）、無ければコード内のデフォルト文を使います。
 
 ### Bot メッセージ（任意）
 
-`config/bot_messages.example.yaml` を参考に `config/bot_messages.yaml` を置くと、`/bugchaser` 各サブコマンドの返答文字列を差し替えられます。YAML ではトップレベルに `commands` と `guild_join` を置きます。キーは省略可能で、書いた項目だけ上書きできます。
+`config/bot_messages.example.yaml` を参考に `config/bot_messages.yaml` を置くと、`/flannel` 各サブコマンドの返答文字列を差し替えられます。YAML ではトップレベルに `commands` と `guild_join` を置きます。キーは省略可能で、書いた項目だけ上書きできます。
 
 `commands` 配下の値は Python の `str.format` と同様です。
 
@@ -68,7 +68,7 @@ Discord Developer Portal の **OAuth2 → URL Generator** で、招待URLを作�
 | スコープ | 用途 |
 | --- | --- |
 | `bot` | サーバーへのBot招待 |
-| `applications.commands` | `/bugchaser` などスラッシュコマンドの利用 |
+| `applications.commands` | `/flannel` などスラッシュコマンドの利用 |
 
 **Bot の権限（Bot Permissions）**
 
@@ -98,7 +98,7 @@ Discord Developer Portal の **OAuth2 → URL Generator** で、招待URLを作�
 
 ### `commands`（スラッシュコマンドごとのキー一覧）
 
-| YAML キー | `/bugchaser` のコマンド | 利用できるプレースホルダ |
+| YAML キー | `/flannel` のコマンド | 利用できるプレースホルダ |
 | --- | --- | --- |
 | `run_line` | `run`（フォーラムごと）| `forum_key`, `fetched`, `stored`, `exported`, `errors`（エラー件数） |
 | `run_empty` | `run`（フォーラムが1件も無いときの全文） | なし |
@@ -136,7 +136,7 @@ Sheets 連携は Service Account 方式です。
 1. Google Cloud で Google Sheets API と Google Drive API を有効化します。
 2. Service Account を作成します。
 3. 認証 JSON を保存します。
-4. `BUG_CHASER_GOOGLE_SERVICE_ACCOUNT_FILE` に JSON のパスを設定します。
+4. `FLANNEL_GOOGLE_SERVICE_ACCOUNT_FILE` に JSON のパスを設定します。
 5. フォーラム別 YAML の `forum.sheets.configured` を `true` にし、`editor_emails` を最低 1 件指定します。
 
 所有者移譲は Google アカウント種別や Workspace ドメイン制約で失敗する場合があります。その場合でも編集者共有までは行い、ログに警告を出します。
@@ -191,49 +191,49 @@ states(forum上のタグ名)とstate_order(優先度)はユーザーが指定す
 ## 起動
 
 ```powershell
-bug-chaser
+flannel
 ```
 
 または:
 
 ```powershell
-python -m bug_chaser
+python -m flannel
 ```
 
 ## スラッシュコマンド
 
 Botが有効なチャンネルで以下のコマンドが使用可能です。
 
-- `/bugchaser run`: 全フォーラムを同期
-- `/bugchaser channel`: 指定フォーラムを同期
-- `/bugchaser thread`: 指定スレッドを同期
-- `/bugchaser dry-run`: 書き込みなしで同期結果を確認
-- `/bugchaser status`: 設定状況を表示
-- `/bugchaser export`: Sheets 有効フォーラムを再同期
-- `/bugchaser sheets on/off`: Sheets 連携を開始/停止
-- `/bugchaser automation on/off`: 自動コメント、タグ付け、アーカイブ、ロックの有効/無効を切替
-- `/bugchaser close`: スレッドをロックしてアーカイブ
-- `/bugchaser reopen`: スレッドを再開
+- `/flannel run`: 全フォーラムを同期
+- `/flannel channel`: 指定フォーラムを同期
+- `/flannel thread`: 指定スレッドを同期
+- `/flannel dry-run`: 書き込みなしで同期結果を確認
+- `/flannel status`: 設定状況を表示
+- `/flannel export`: Sheets 有効フォーラムを再同期
+- `/flannel sheets on/off`: Sheets 連携を開始/停止
+- `/flannel automation on/off`: 自動コメント、タグ付け、アーカイブ、ロックの有効/無効を切替
+- `/flannel close`: スレッドをロックしてアーカイブ
+- `/flannel reopen`: スレッドを再開
 
 
 ## パッケージ構成
 
-- `bug_chaser.core`: ドメインモデルと実行設定
-- `bug_chaser.config`: フォーラム別 YAML の読み込みと検索
-- `bug_chaser.discord`: Discord Gateway、コマンド、スレッド取得、管理操作
-- `bug_chaser.rules`: タグ優先の状態判定
-- `bug_chaser.sheets`: 任意の Google Sheets 連携
-- `bug_chaser.storage`: SQLite 永続化
-- `bug_chaser.sync`: 同期サービスとスケジューラ
+- `flannel.core`: ドメインモデルと実行設定
+- `flannel.config`: フォーラム別 YAML の読み込みと検索
+- `flannel.discord`: Discord Gateway、コマンド、スレッド取得、管理操作
+- `flannel.rules`: タグ優先の状態判定
+- `flannel.sheets`: 任意の Google Sheets 連携
+- `flannel.storage`: SQLite 永続化
+- `flannel.sync`: 同期サービスとスケジューラ
 
 
 ## Discordモジュール構成
 
-- `bug_chaser.discord.guard`: エントリーポイント
-- `bug_chaser.discord.bird`: フォーラムスレッド収集
-- `bug_chaser.discord.gloop`: 投稿情報の正規化
-- `bug_chaser.discord.mothman`: `/bugchaser` コマンド定義
-- `bug_chaser.discord.lady`: Discord 側の管理操作
+- `flannel.discord.guard`: エントリーポイント
+- `flannel.discord.bird`: フォーラムスレッド収集
+- `flannel.discord.gloop`: 投稿情報の正規化
+- `flannel.discord.mothman`: `/flannel` コマンド定義
+- `flannel.discord.lady`: Discord 側の管理操作
 
 
 ## ライセンス

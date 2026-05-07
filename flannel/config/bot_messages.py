@@ -1,15 +1,15 @@
 """
 User-overridable Discord bot reply strings (optional YAML).
 
-Default path: ``<parent of BUG_CHASER_CONFIG_DIR>/bot_messages.yaml``
+Default path: ``<parent of FLANNEL_CONFIG_DIR>/bot_messages.yaml``
 (e.g. ``config/bot_messages.yaml`` when forums live under ``config/forums``).
 
-Override with ``BUG_CHASER_BOT_MESSAGES_FILE`` (must exist when set).
+Override with ``FLANNEL_BOT_MESSAGES_FILE`` (must exist when set).
 """
 import yaml
 from pydantic import BaseModel, ConfigDict, Field
 
-from bug_chaser.core.settings import AppSettings
+from flannel.core.settings import AppSettings
 
 
 def format_bot_message(template: str, **kwargs: object) -> str:

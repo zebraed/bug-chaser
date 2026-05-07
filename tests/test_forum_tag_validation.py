@@ -1,5 +1,5 @@
-from bug_chaser.config.forum import ForumConfig
-from bug_chaser.discord.forum_validation import list_missing_config_tags
+from flannel.config.forum import ForumConfig
+from flannel.discord.forum_validation import list_missing_config_tags
 
 
 def test_list_missing_config_tags_empty_when_all_present() -> None:

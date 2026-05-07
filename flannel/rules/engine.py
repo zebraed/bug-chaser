@@ -1,7 +1,7 @@
 import logging
 
-from bug_chaser.config.forum import ForumConfig
-from bug_chaser.core.models import ThreadSnapshot, ThreadStatus
+from flannel.config.forum import ForumConfig
+from flannel.core.models import ThreadSnapshot, ThreadStatus
 
 logger = logging.getLogger(__name__)
 

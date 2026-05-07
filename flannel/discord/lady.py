@@ -10,7 +10,7 @@ import logging
 
 import discord
 
-from bug_chaser.config.forum import ActionRule, ForumConfig
+from flannel.config.forum import ActionRule, ForumConfig
 
 logger = logging.getLogger(__name__)
 

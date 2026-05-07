@@ -1,6 +1,6 @@
 from types import SimpleNamespace
 
-from bug_chaser.discord.mothman import MothmanCommandHandler
+from flannel.discord.mothman import MothmanCommandHandler
 
 
 def test_fairy_command_is_registered() -> None:

@@ -5,7 +5,7 @@ from pathlib import Path
 
 import yaml
 
-from bug_chaser.config.forum import ForumConfig, LoadedForumConfig
+from flannel.config.forum import ForumConfig, LoadedForumConfig
 
 _EXAMPLE_TEMPLATE_FILENAMES = frozenset({"example.yaml", "example.yml"})
 

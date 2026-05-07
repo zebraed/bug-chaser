@@ -1,30 +1,30 @@
 """
 あ！野生のガードロボが飛び出してきた！
 
-Discord Gateway for bug-chaser.
+Discord Gateway for flannel.
 """
 import logging
 
 import discord
 from discord import app_commands
 
-from bug_chaser.config.bot_messages import BotMessages, GuildJoinStrings
-from bug_chaser.config.forum import ForumConfig
-from bug_chaser.config.registry import ForumRegistry
-from bug_chaser.core.models import ThreadSnapshot, ThreadStatus
-from bug_chaser.core.settings import AppSettings
-from bug_chaser.discord.bird import ShadowBirdCollector
-from bug_chaser.discord.forum_validation import assert_configured_tags_exist_on_forums
-from bug_chaser.discord.gloop import GloopSnapshotBuilder
-from bug_chaser.discord.lady import ShadowLadyThreadManager
-from bug_chaser.discord.mothman import MothmanCommandHandler
-from bug_chaser.rules.engine import RuleEngine
-from bug_chaser.sheets.exporter import SheetExporter
-from bug_chaser.sheets.google import GoogleClients
-from bug_chaser.sheets.provisioner import SpreadsheetProvisioner
-from bug_chaser.storage.sqlite_store import SQLiteStore
-from bug_chaser.sync.scheduler import BugChaserScheduler
-from bug_chaser.sync.service import SyncService
+from flannel.config.bot_messages import BotMessages, GuildJoinStrings
+from flannel.config.forum import ForumConfig
+from flannel.config.registry import ForumRegistry
+from flannel.core.models import ThreadSnapshot, ThreadStatus
+from flannel.core.settings import AppSettings
+from flannel.discord.bird import ShadowBirdCollector
+from flannel.discord.forum_validation import assert_configured_tags_exist_on_forums
+from flannel.discord.gloop import GloopSnapshotBuilder
+from flannel.discord.lady import ShadowLadyThreadManager
+from flannel.discord.mothman import MothmanCommandHandler
+from flannel.rules.engine import RuleEngine
+from flannel.sheets.exporter import SheetExporter
+from flannel.sheets.google import GoogleClients
+from flannel.sheets.provisioner import SpreadsheetProvisioner
+from flannel.storage.sqlite_store import SQLiteStore
+from flannel.sync.scheduler import FlannelScheduler
+from flannel.sync.service import SyncService
 
 logger = logging.getLogger(__name__)
 
@@ -112,7 +112,7 @@ class GuardRobotGateway(discord.Client):
         self._snapshot_builder = GloopSnapshotBuilder()
         self._thread_manager = ShadowLadyThreadManager()
         self._google_clients = self._build_google_clients(settings)
-        self._scheduler: BugChaserScheduler | None = None
+        self._scheduler: FlannelScheduler | None = None
         self._startup_initialized = False
         self._bot_messages = bot_messages or BotMessages()
 
@@ -145,7 +145,7 @@ class GuardRobotGateway(discord.Client):
             messages=self._bot_messages,
         )
         self.tree.add_command(handler.group)
-        self._scheduler = BugChaserScheduler(self._registry, sync_service)
+        self._scheduler = FlannelScheduler(self._registry, sync_service)
 
         if self._settings.command_guild_id:
             guild = discord.Object(id=self._settings.command_guild_id)
@@ -175,7 +175,7 @@ class GuardRobotGateway(discord.Client):
                 self._scheduler.start()
             await self._send_pending_guild_join_messages()
 
-        logger.info("bug-chaser logged in as %s", self.user)
+        logger.info("flannel logged in as %s", self.user)
 
     async def on_guild_join(self, guild: discord.Guild) -> None:
         """Handle the Guild Join event.

@@ -7,7 +7,7 @@ from collections.abc import Sequence
 
 import discord
 
-from bug_chaser.core.models import ReactionCount, ThreadSnapshot
+from flannel.core.models import ReactionCount, ThreadSnapshot
 
 
 class GloopSnapshotBuilder:

@@ -5,7 +5,7 @@ from dataclasses import dataclass, field
 from datetime import datetime
 from enum import Enum
 
-from bug_chaser.core.identifiers import validate_thread_status_value
+from flannel.core.identifiers import validate_thread_status_value
 
 
 class ThreadStatus(str, Enum):

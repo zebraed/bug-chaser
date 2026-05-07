@@ -1,6 +1,6 @@
-from bug_chaser.config.forum import ForumConfig
-from bug_chaser.core.models import ThreadSnapshot
-from bug_chaser.sheets.google import GoogleClients
+from flannel.config.forum import ForumConfig
+from flannel.core.models import ThreadSnapshot
+from flannel.sheets.google import GoogleClients
 
 MASTER_HEADERS = [
     "Thread ID",

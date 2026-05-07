@@ -1,22 +1,22 @@
 """
 I love Roger Scarberry's sketch of Mothman.
 
-Command handler for bug-chaser.
+Command handler for flannel.
 """
 import discord
 from discord import app_commands
 
-from bug_chaser.config.bot_messages import BotMessages, format_bot_message
-from bug_chaser.config.forum import ForumConfig
-from bug_chaser.config.registry import ForumRegistry
-from bug_chaser.core.models import AutomationFeature
-from bug_chaser.sheets.provisioner import SpreadsheetProvisioner
-from bug_chaser.storage.sqlite_store import SQLiteStore
-from bug_chaser.sync.service import SyncService
+from flannel.config.bot_messages import BotMessages, format_bot_message
+from flannel.config.forum import ForumConfig
+from flannel.config.registry import ForumRegistry
+from flannel.core.models import AutomationFeature
+from flannel.sheets.provisioner import SpreadsheetProvisioner
+from flannel.storage.sqlite_store import SQLiteStore
+from flannel.sync.service import SyncService
 
 
 class MothmanCommandHandler:
-    """Command handler for bug-chaser."""
+    """Command handler for flannel."""
     def __init__(
         self,
         registry: ForumRegistry,
@@ -39,7 +39,7 @@ class MothmanCommandHandler:
         self._store = store
         self._provisioner = provisioner
         self._msg = (messages or BotMessages()).commands
-        self.group = app_commands.Group(name="bugchaser", description="bug-chaser management")
+        self.group = app_commands.Group(name="flannel", description="flannel management")
         self._register_commands()
 
     def _register_commands(self) -> None:

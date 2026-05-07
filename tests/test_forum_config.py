@@ -1,7 +1,7 @@
 import pytest
 
-from bug_chaser.config.forum import ForumConfig
-from bug_chaser.core.identifiers import DISCORD_FORUM_MAX_AVAILABLE_TAGS
+from flannel.config.forum import ForumConfig
+from flannel.core.identifiers import DISCORD_FORUM_MAX_AVAILABLE_TAGS
 
 
 def _minimal_forum() -> dict:

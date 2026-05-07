@@ -1,10 +1,10 @@
-from bug_chaser.core.settings import AppSettings
+from flannel.core.settings import AppSettings
 
 
 def test_empty_google_service_account_file_is_none() -> None:
     settings = AppSettings(
-        BUG_CHASER_DISCORD_TOKEN="token",
-        BUG_CHASER_GOOGLE_SERVICE_ACCOUNT_FILE="",
+        FLANNEL_DISCORD_TOKEN="token",
+        FLANNEL_GOOGLE_SERVICE_ACCOUNT_FILE="",
         _env_file=None,
     )
 
@@ -13,8 +13,8 @@ def test_empty_google_service_account_file_is_none() -> None:
 
 def test_empty_bot_messages_file_is_none() -> None:
     settings = AppSettings(
-        BUG_CHASER_DISCORD_TOKEN="token",
-        BUG_CHASER_BOT_MESSAGES_FILE="",
+        FLANNEL_DISCORD_TOKEN="token",
+        FLANNEL_BOT_MESSAGES_FILE="",
         _env_file=None,
     )
 

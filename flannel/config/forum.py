@@ -6,7 +6,7 @@ from pathlib import Path
 from pydantic import BaseModel, ConfigDict, Field, field_validator, model_validator
 from typing_extensions import Self
 
-from bug_chaser.core.identifiers import (
+from flannel.core.identifiers import (
     DISCORD_FORUM_MAX_AVAILABLE_TAGS,
     DISCORD_FORUM_TAG_NAME_MAX_LENGTH,
     validate_state_id,

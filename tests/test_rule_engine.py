@@ -1,9 +1,9 @@
 import logging
 from datetime import datetime, timezone
 
-from bug_chaser.config.forum import ForumConfig
-from bug_chaser.core.models import ThreadSnapshot, ThreadStatus
-from bug_chaser.rules.engine import RuleEngine
+from flannel.config.forum import ForumConfig
+from flannel.core.models import ThreadSnapshot, ThreadStatus
+from flannel.rules.engine import RuleEngine
 
 
 def test_rule_engine_prefers_tags() -> None:
@@ -120,7 +120,7 @@ def test_rule_engine_warns_when_no_state_matches(caplog) -> None:
         tags=("Unknown Tag",),
     )
 
-    with caplog.at_level(logging.WARNING, logger="bug_chaser.rules.engine"):
+    with caplog.at_level(logging.WARNING, logger="flannel.rules.engine"):
         assert RuleEngine().evaluate(config, snapshot) == ThreadStatus.OPEN.value
 
     assert "No configured state matched thread tags" in caplog.text

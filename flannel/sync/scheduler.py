@@ -1,17 +1,17 @@
 """
-Scheduler for bug-chaser.
+Scheduler for flannel.
 """
 import logging
 
 from apscheduler.schedulers.asyncio import AsyncIOScheduler
 
-from bug_chaser.config.registry import ForumRegistry
-from bug_chaser.sync.service import SyncService
+from flannel.config.registry import ForumRegistry
+from flannel.sync.service import SyncService
 
 logger = logging.getLogger(__name__)
 
 
-class BugChaserScheduler:
+class FlannelScheduler:
     def __init__(self, registry: ForumRegistry, sync_service: SyncService) -> None:
         """Initialize the scheduler.
 

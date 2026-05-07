@@ -1,14 +1,14 @@
 """
-Main entry point for bug-chaser.
+Main entry point for flannel.
 """
 import logging
 
-from bug_chaser.config.bot_messages import load_bot_messages
-from bug_chaser.config.forum import ForumConfig
-from bug_chaser.config.loader import ForumConfigLoader
-from bug_chaser.core.settings import AppSettings
-from bug_chaser.discord.guard import GuardRobotGateway
-from bug_chaser.storage.sqlite_store import SQLiteStore
+from flannel.config.bot_messages import load_bot_messages
+from flannel.config.forum import ForumConfig
+from flannel.config.loader import ForumConfigLoader
+from flannel.core.settings import AppSettings
+from flannel.discord.guard import GuardRobotGateway
+from flannel.storage.sqlite_store import SQLiteStore
 
 
 def _restore_runtime_flags(store: SQLiteStore, config: ForumConfig) -> None:
@@ -37,7 +37,7 @@ def _restore_runtime_flags(store: SQLiteStore, config: ForumConfig) -> None:
 
 
 def main() -> None:
-    """Main entry point func for bug-chaser."""
+    """Main entry point func for flannel."""
     logging.basicConfig(
         level=logging.INFO,
         format="%(asctime)s %(levelname)s %(name)s: %(message)s",

@@ -2,8 +2,8 @@ from datetime import datetime, timezone
 
 import pytest
 
-from bug_chaser.core.identifiers import validate_state_id, validate_thread_status_value
-from bug_chaser.core.models import ThreadSnapshot
+from flannel.core.identifiers import validate_state_id, validate_thread_status_value
+from flannel.core.models import ThreadSnapshot
 
 
 def test_validate_state_id_rejects_unsafe_strings() -> None:

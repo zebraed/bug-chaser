@@ -15,8 +15,8 @@ import json
 import sqlite3
 from pathlib import Path
 
-from bug_chaser.config.forum import ForumConfig
-from bug_chaser.core.models import AutomationFeature, ThreadSnapshot
+from flannel.config.forum import ForumConfig
+from flannel.core.models import AutomationFeature, ThreadSnapshot
 
 
 class SQLiteStore:

@@ -3,12 +3,12 @@ from pathlib import Path
 import pytest
 import yaml
 
-from bug_chaser.config.bot_messages import (
+from flannel.config.bot_messages import (
     BotMessages,
     format_bot_message,
     load_bot_messages,
 )
-from bug_chaser.core.settings import AppSettings
+from flannel.core.settings import AppSettings
 
 
 def test_format_bot_message_replaces_placeholders() -> None:
@@ -24,7 +24,7 @@ def test_format_bot_message_ignores_invalid_template() -> None:
 
 def test_load_bot_messages_default() -> None:
     settings = AppSettings(
-        BUG_CHASER_DISCORD_TOKEN="t",
+        FLANNEL_DISCORD_TOKEN="t",
         _env_file=None,
     )
     m = load_bot_messages(settings)
@@ -40,8 +40,8 @@ def test_load_bot_messages_from_config_dir(tmp_path: Path) -> None:
         encoding="utf-8",
     )
     settings = AppSettings(
-        BUG_CHASER_DISCORD_TOKEN="t",
-        BUG_CHASER_CONFIG_DIR=forums,
+        FLANNEL_DISCORD_TOKEN="t",
+        FLANNEL_CONFIG_DIR=forums,
         _env_file=None,
     )
     m = load_bot_messages(settings)
@@ -56,8 +56,8 @@ def test_load_bot_messages_explicit_path(tmp_path: Path) -> None:
         encoding="utf-8",
     )
     settings = AppSettings(
-        BUG_CHASER_DISCORD_TOKEN="t",
-        BUG_CHASER_BOT_MESSAGES_FILE=p,
+        FLANNEL_DISCORD_TOKEN="t",
+        FLANNEL_BOT_MESSAGES_FILE=p,
         _env_file=None,
     )
     assert load_bot_messages(settings).commands.fairy == "x"
@@ -65,8 +65,8 @@ def test_load_bot_messages_explicit_path(tmp_path: Path) -> None:
 
 def test_load_bot_messages_explicit_path_missing() -> None:
     settings = AppSettings(
-        BUG_CHASER_DISCORD_TOKEN="t",
-        BUG_CHASER_BOT_MESSAGES_FILE=Path("nonexistent_bot_messages.yaml"),
+        FLANNEL_DISCORD_TOKEN="t",
+        FLANNEL_BOT_MESSAGES_FILE=Path("nonexistent_bot_messages.yaml"),
         _env_file=None,
     )
     with pytest.raises(FileNotFoundError):

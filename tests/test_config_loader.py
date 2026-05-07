@@ -1,6 +1,6 @@
 from pathlib import Path
 
-from bug_chaser.config.loader import ForumConfigLoader
+from flannel.config.loader import ForumConfigLoader
 
 _MINIMAL_FORUM_YAML = """\
 forum:

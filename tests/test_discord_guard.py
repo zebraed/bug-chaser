@@ -1,6 +1,6 @@
-from bug_chaser.config.forum import ForumConfig
-from bug_chaser.core.models import ThreadStatus
-from bug_chaser.discord.guard import (
+from flannel.config.forum import ForumConfig
+from flannel.core.models import ThreadStatus
+from flannel.discord.guard import (
     action_name_for_added_tags,
     action_name_for_status,
     should_apply_status_action,

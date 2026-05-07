@@ -3,7 +3,7 @@ Startup checks: YAML tag names must exist on the parent forum channel.
 """
 import discord
 
-from bug_chaser.config.forum import ForumConfig
+from flannel.config.forum import ForumConfig
 
 
 def list_missing_config_tags(

@@ -31,7 +31,8 @@ class SyncService:
             snapshot_builder (GloopSnapshotBuilder): The builder for thread snapshots.
             rule_engine (RuleEngine): The engine for evaluating thread states.
             store (SQLiteStore): The store for storing thread snapshots.
-            sheet_exporter (SheetExporter | None): The exporter for exporting thread snapshots to Sheets.
+            sheet_exporter (SheetExporter | None): The exporter to
+                                                   for exporting thread snapshots to Sheets.
         """
         self._collector = collector
         self._snapshot_builder = snapshot_builder

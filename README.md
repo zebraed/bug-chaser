@@ -2,6 +2,8 @@
 
 <img height="300" alt="ふらんねる線画3" src="https://github.com/user-attachments/assets/20244ffb-6e27-4e4e-8c51-6979fe30604f" />
 
+*ぼく、ふらんねる！ もぐもぐ*
+
 Discordのフォーラム投稿を監視し、報告の取得、タグ状態判定、管理補助、Google Sheetsと連携を行うDiscord-Botです。
 
 ## 主な機能
@@ -56,21 +58,59 @@ Copy-Item .env.example .env
 
 `commands` 配下の値は Python の `str.format` と同様です。
 
-#### `commands`（スラッシュコマンドごとのキー一覧）
+
+## スコープと権限
+
+Discord Developer Portal の **OAuth2 → URL Generator** で、招待URLを作成するときは次を有効にすると、このボットの想定どおり動かしやすいです。
+
+**スコープ（Scopes）**
+
+| スコープ | 用途 |
+| --- | --- |
+| `bot` | サーバーへのBot招待 |
+| `applications.commands` | `/bugchaser` などスラッシュコマンドの利用 |
+
+**Bot の権限（Bot Permissions）**
+
+一般（General）では次を有効にします。
+
+| 権限（UI 表示） | 英名（参考） |
+| --- | --- |
+| チャンネルの管理 | Manage Channels |
+
+テキスト（Text）では次を有効にします。
+
+| 権限（UI 表示） | 英名（参考） |
+| --- | --- |
+| メッセージを送る | Send Messages |
+| 公開スレッドを作成 | Create Public Threads |
+| Threads でメッセージを送る | Send Messages in Threads |
+| メッセージを管理 | Manage Messages |
+| スレッドを管理 | Manage Threads |
+| リンクを埋め込み | Embed Links |
+| ファイルを添付 | Attach Files |
+| メッセージ履歴を読む | Read Message History |
+| 外部の絵文字の使用 | Use External Emojis |
+| リアクションを付ける | Add Reactions |
+
+また、**Privilege Gateway Intents** で **Message Content Intent** を有効にしてください（メッセージ本文の取得に利用します）
+
+
+### `commands`（スラッシュコマンドごとのキー一覧）
 
 | YAML キー | `/bugchaser` のコマンド | 利用できるプレースホルダ |
 | --- | --- | --- |
-| `run_line` | `run`（フォーラムごとの1行） | `forum_key`, `fetched`, `stored`, `exported`, `errors`（エラー件数） |
+| `run_line` | `run`（フォーラムごと）| `forum_key`, `fetched`, `stored`, `exported`, `errors`（エラー件数） |
 | `run_empty` | `run`（フォーラムが1件も無いときの全文） | なし |
 | `channel_result` | `channel` | `forum_key`, `fetched`, `stored`, `exported`, `errors` |
-| `dry_run_line` | `dry-run`（フォーラムごとの 1 行） | `forum_key`, `fetched`, `errors` |
+| `dry_run_line` | `dry-run`（フォーラムごと） | `forum_key`, `fetched`, `errors` |
 | `thread_no_parent` | `thread`（親フォーラムが無いとき） | なし |
 | `thread_result` | `thread`（同期結果） | `forum_key`, `stored`, `exported`, `errors` |
 | `export_sheets_disabled` | `export`（Sheets が無効なフォーラムの行） | `forum_key` |
 | `export_line` | `export`（同期した行） | `forum_key`, `exported`, `errors` |
-| `status_line` | `status`（フォーラムごとの 1 行） | `forum_key`, `channel_id`, `sheets_enabled`, `automation_enabled`, `auto_comment`, `auto_tag`, `auto_archive`, `auto_lock` |
-| `sheets_not_configured` | `sheets on`（YAML 未設定時） | なし |
-| `sheets_no_service_account` | `sheets on`（Service Account 無し時） | なし |
+| `status_line` | `status`（フォーラムごと） | `forum_key`, `channel_id`, `sheets_enabled`, `automation_enabled`, `auto_comment`, `auto_tag`, `auto_archive`, `auto_lock` |
+| `sheets_not_configured` | `sheets on`（YAML未設定時） | なし |
+| `sheets_no_service_account` | `sheets on`（Service Account 未設定時） | なし |
 | `sheets_enabled` | `sheets on`（成功時） | `spreadsheet_id` |
 | `sheets_disabled` | `sheets off` | なし |
 | `automation_enabled` | `automation on` | `feature`（`all`, `auto_comment` など AutomationFeature の値） |
@@ -78,19 +118,20 @@ Copy-Item .env.example .env
 | `thread_closed` | `close` | なし |
 | `thread_reopened` | `reopen` | なし |
 
-#### `guild_join`（サーバー参加時の 1 通）
+### `guild_join`（サーバー参加時のチャットメッセージ）
 
 Bot が **新規にサーバーへ追加されたとき** に送る本文です。
 
 | 属性 | 型 | 説明 |
 | --- | --- | --- |
-| `enabled` | bool | `true` のときだけ送信処理を行う（既定は `false`）。 |
-| `message` | str | 送る本文。空または空白のみのときは送信しない。 |
+| `enabled` | bool | `true` のとき送信処理を行う（既定は `false`）|
+| `message` | str | 送る本文。空または空白のみのときは送信しない |
 | `channel_id` | int or None | そのサーバー内のチャンネルID。指定したチャンネルがあればそこへ送る。未指定のときはシステムチャンネル、なければ Bot がメッセージを送れる最初のテキストチャンネル。 |
 
 ## Google Sheets 連携
 
 Sheets 連携は Service Account 方式です。
+> WIP機能です。
 
 1. Google Cloud で Google Sheets API と Google Drive API を有効化します。
 2. Service Account を作成します。
@@ -142,7 +183,7 @@ states(forum上のタグ名)とstate_order(優先度)はユーザーが指定す
 | `lock` | bool | `true` のときスレッドをロックする。 |
 | `reopen` | bool | `true` のときアーカイブ解除・ロック解除（再開）する。 |
 
-タグの排他をしたい場合は、遷移先以外の状態タグを `remove_tags` に書きます。
+タグの排他制御をしたい場合は、遷移先以外の状態タグを `remove_tags` に書きます。
 
 **自動化フラグ**: 上記のうち、実際に Bot が実行するのは `forum.automation` でオンになっている項目だけです。例: `add_comment` は `auto_comment: true`、`add_tags` / `remove_tags` は `auto_tag: true`、`archive` は `auto_archive: true`、`lock` は `auto_lock: true` が必要です。オフの項目は YAML に書いても無視されます。
 

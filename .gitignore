@@ -221,3 +221,4 @@ __marimo__/
 # Secret files
 *.secret.yaml
 *.secret.yml
+*.code-workspace

@@ -150,7 +150,13 @@ class GuardRobotGateway(discord.Client):
         if self._settings.command_guild_id:
             guild = discord.Object(id=self._settings.command_guild_id)
             self.tree.copy_global_to(guild=guild)
-            await self.tree.sync(guild=guild)
+            try:
+                await self.tree.sync(guild=guild)
+            except discord.Forbidden:
+                logger.exception(
+                    "Guild command sync skipped (missing access): guild_id=%s",
+                    self._settings.command_guild_id,
+                )
         else:
             await self.tree.sync()
 
@@ -167,6 +173,7 @@ class GuardRobotGateway(discord.Client):
             self._startup_initialized = True
             if self._scheduler is not None:
                 self._scheduler.start()
+            await self._send_pending_guild_join_messages()
 
         logger.info("bug-chaser logged in as %s", self.user)
 
@@ -176,8 +183,35 @@ class GuardRobotGateway(discord.Client):
         Args:
             guild (discord.Guild): The guild that the bot joined.
         """
+        await self._sync_joined_command_guild(guild)
+        await self._maybe_send_guild_join_message(guild)
+
+    async def _sync_joined_command_guild(self, guild: discord.Guild) -> None:
+        """Sync guild commands after the bot gains access to the configured guild."""
+        if self._settings.command_guild_id != guild.id:
+            return
+
+        try:
+            await self.tree.sync(guild=discord.Object(id=guild.id))
+        except discord.Forbidden:
+            logger.exception(
+                "Guild command sync skipped (missing access): guild_id=%s",
+                guild.id,
+            )
+
+    async def _send_pending_guild_join_messages(self) -> None:
+        """Send guild join messages missed while the client was offline."""
+        for guild in self.guilds:
+            if not self._store.has_sent_guild_join_message(guild.id):
+                await self._maybe_send_guild_join_message(guild)
+
+    async def _maybe_send_guild_join_message(self, guild: discord.Guild) -> None:
+        """Send the configured guild join message once per guild."""
         gj = self._bot_messages.guild_join
         if not gj.enabled or not gj.message.strip():
+            return
+
+        if self._store.has_sent_guild_join_message(guild.id):
             return
 
         channel: discord.abc.Messageable | None = None
@@ -225,6 +259,9 @@ class GuardRobotGateway(discord.Client):
                 "Failed to send guild join message: guild_id=%s",
                 guild.id,
             )
+            return
+
+        self._store.mark_guild_join_message_sent(guild.id)
 
     async def on_thread_update(self, before: discord.Thread, after: discord.Thread) -> None:
         """Handle the Thread Update event.

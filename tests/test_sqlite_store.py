@@ -88,3 +88,15 @@ def test_record_sync_run(tmp_path: Path) -> None:
         exported=5,
         errors=["err1"],
     )
+
+
+def test_guild_join_message_delivery_marker(tmp_path: Path) -> None:
+    store = SQLiteStore(tmp_path / "db.sqlite3")
+    store.initialize()
+
+    assert not store.has_sent_guild_join_message(123)
+
+    store.mark_guild_join_message_sent(123)
+    store.mark_guild_join_message_sent(123)
+
+    assert store.has_sent_guild_join_message(123)

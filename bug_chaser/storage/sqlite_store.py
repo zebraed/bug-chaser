@@ -6,6 +6,7 @@ Database schema:
     - threads: Thread snapshots.
     - feature_flags: Per-forum feature flags.
     - sync_runs: Sync run history.
+    - guild_join_messages: Guild join message delivery history.
 
 #TODO Do we need to separate the schema into other files?
 """
@@ -72,6 +73,11 @@ class SQLiteStore:
                     exported INTEGER NOT NULL,
                     errors_json TEXT NOT NULL,
                     created_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP
+                );
+
+                CREATE TABLE IF NOT EXISTS guild_join_messages (
+                    guild_id INTEGER PRIMARY KEY,
+                    sent_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP
                 );
                 """
             )
@@ -283,6 +289,31 @@ class SQLiteStore:
                     exported,
                     json.dumps(errors, ensure_ascii=False),
                 ),
+            )
+
+    def has_sent_guild_join_message(self, guild_id: int) -> bool:
+        """Check whether the guild join message was already sent."""
+        with self._connect() as connection:
+            row = connection.execute(
+                """
+                SELECT 1
+                FROM guild_join_messages
+                WHERE guild_id = ?
+                """,
+                (guild_id,),
+            ).fetchone()
+        return row is not None
+
+    def mark_guild_join_message_sent(self, guild_id: int) -> None:
+        """Mark the guild join message as sent for a guild."""
+        with self._connect() as connection:
+            connection.execute(
+                """
+                INSERT INTO guild_join_messages (guild_id)
+                VALUES (?)
+                ON CONFLICT(guild_id) DO NOTHING
+                """,
+                (guild_id,),
             )
 
     def _connect(self) -> sqlite3.Connection:

@@ -77,3 +77,5 @@ def test_bot_messages_model_merges_defaults() -> None:
     m = BotMessages.model_validate({"commands": {"fairy": "z"}})
     assert m.commands.fairy == "z"
     assert m.commands.run_empty == "No forums configured."
+    assert not m.guild_join.enabled
+    assert m.guild_join.message == ""

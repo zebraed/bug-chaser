@@ -1,3 +1,8 @@
+"""
+Google clients for the application.
+
+#TODO WIP
+"""
 from pathlib import Path
 from typing import Any
 
@@ -11,7 +16,13 @@ SHEETS_SCOPES = (
 
 
 class GoogleClients:
+    """Google clients for the application."""
     def __init__(self, service_account_file: Path) -> None:
+        """Initialize the Google clients.
+
+        Args:
+            service_account_file (Path): The path to the service account file.(JSON)
+        """
         credentials = Credentials.from_service_account_file(
             service_account_file,
             scopes=SHEETS_SCOPES,

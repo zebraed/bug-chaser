@@ -1,3 +1,6 @@
+"""
+Scheduler for bug-chaser.
+"""
 import logging
 
 from apscheduler.schedulers.asyncio import AsyncIOScheduler
@@ -10,11 +13,19 @@ logger = logging.getLogger(__name__)
 
 class BugChaserScheduler:
     def __init__(self, registry: ForumRegistry, sync_service: SyncService) -> None:
+        """Initialize the scheduler.
+
+        Args:
+            registry (ForumRegistry): The forum registry.
+            sync_service (SyncService): The sync service.
+        """
         self._registry = registry
         self._sync_service = sync_service
         self._scheduler = AsyncIOScheduler()
 
     def start(self) -> None:
+        """Start the scheduler.
+        """
         for config in self._registry.all:
             self._scheduler.add_job(
                 self._run_forum,
@@ -28,6 +39,11 @@ class BugChaserScheduler:
         self._scheduler.start()
 
     async def _run_forum(self, forum_key: str) -> None:
+        """Run the sync for a forum.
+
+        Args:
+            forum_key (str): The forum key.
+        """
         config = self._registry.get_by_key(forum_key)
         try:
             result = await self._sync_service.sync_forum(

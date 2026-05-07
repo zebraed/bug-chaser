@@ -1,3 +1,8 @@
+"""
+Provisioner for spreadsheets for a forum.
+
+#TODO WIP
+"""
 import logging
 
 from bug_chaser.config.forum import ForumConfig
@@ -10,10 +15,23 @@ class SpreadsheetProvisioner:
     """Creates and shares spreadsheets for a forum."""
 
     def __init__(self, google_clients: GoogleClients) -> None:
+        """Initialize the spreadsheet provisioner.
+
+        Args:
+            google_clients (GoogleClients): Google clients for Sheets.
+        """
         self._sheets = google_clients.sheets
         self._drive = google_clients.drive
 
     def ensure_spreadsheet(self, config: ForumConfig) -> str:
+        """Ensure a spreadsheet is created and shared for a forum.
+
+        Args:
+            config (ForumConfig): The forum configuration.
+
+        Returns:
+            The spreadsheet id.
+        """
         sheets = config.forum.sheets
         if sheets.spreadsheet_id:
             return sheets.spreadsheet_id
@@ -28,6 +46,14 @@ class SpreadsheetProvisioner:
         return spreadsheet_id
 
     def _create_spreadsheet(self, config: ForumConfig) -> str:
+        """Create a spreadsheet for a forum.
+
+        Args:
+            config (ForumConfig): The forum configuration.
+
+        Returns:
+            The spreadsheet id.
+        """
         sheets = config.forum.sheets
         title = f"bug-chaser - {config.forum.key}"
         body = {
@@ -41,6 +67,12 @@ class SpreadsheetProvisioner:
         return response["spreadsheetId"]
 
     def _share_spreadsheet(self, spreadsheet_id: str, editor_emails: list[str]) -> None:
+        """Share a spreadsheet with the editor emails.
+
+        Args:
+            spreadsheet_id (str): The spreadsheet id.
+            editor_emails (list[str]): The editor emails.
+        """
         for email in editor_emails:
             self._drive.permissions().create(
                 fileId=spreadsheet_id,
@@ -49,6 +81,12 @@ class SpreadsheetProvisioner:
             ).execute()
 
     def _transfer_owner_if_possible(self, spreadsheet_id: str, owner_email: str) -> None:
+        """Transfer the ownership of a spreadsheet to the owner email if possible.
+
+        Args:
+            spreadsheet_id (str): The spreadsheet id.
+            owner_email (str): The owner email.
+        """
         permission = self._drive.permissions().create(
             fileId=spreadsheet_id,
             body={"type": "user", "role": "owner", "emailAddress": owner_email},

@@ -16,6 +16,7 @@ from bug_chaser.sync.service import SyncService
 
 
 class MothmanCommandHandler:
+    """Command handler for bug-chaser."""
     def __init__(
         self,
         registry: ForumRegistry,
@@ -24,6 +25,15 @@ class MothmanCommandHandler:
         provisioner: SpreadsheetProvisioner | None = None,
         messages: BotMessages | None = None,
     ) -> None:
+        """Initialize the command handler.
+
+        Args:
+            registry (ForumRegistry): The forum registry.
+            sync_service (SyncService): The sync service.
+            store (SQLiteStore): The SQLite store.
+            provisioner (SpreadsheetProvisioner | None): The spreadsheet provisioner.
+            messages (BotMessages | None): The bot messages.
+        """
         self._registry = registry
         self._sync_service = sync_service
         self._store = store
@@ -33,6 +43,8 @@ class MothmanCommandHandler:
         self._register_commands()
 
     def _register_commands(self) -> None:
+        """Register the commands.
+        """
         self.group.command(name="run", description="Sync all configured forums.")(self.run)
         self.group.command(name="channel", description="Sync one configured forum channel.")(
             self.channel,
@@ -76,6 +88,11 @@ class MothmanCommandHandler:
         self.group.add_command(automation)
 
     async def run(self, interaction: discord.Interaction) -> None:
+        """Sync all configured forums.
+
+        Args:
+            interaction (discord.Interaction): The Discord interaction.
+        """
         await interaction.response.defer(ephemeral=True, thinking=True)
         lines: list[str] = []
         for config in self._registry.all:
@@ -101,6 +118,12 @@ class MothmanCommandHandler:
         interaction: discord.Interaction,
         forum_channel: discord.ForumChannel,
     ) -> None:
+        """Sync one configured forum channel.
+
+        Args:
+            interaction (discord.Interaction): The Discord interaction.
+            forum_channel (discord.ForumChannel): The forum channel to sync.
+        """
         await interaction.response.defer(ephemeral=True, thinking=True)
         config = self._registry.get_by_channel_id(forum_channel.id)
         result = await self._sync_service.sync_forum(config)
@@ -117,6 +140,11 @@ class MothmanCommandHandler:
         )
 
     async def dry_run(self, interaction: discord.Interaction) -> None:
+        """Preview sync without writing changes.
+
+        Args:
+            interaction (discord.Interaction): The Discord interaction.
+        """
         await interaction.response.defer(ephemeral=True, thinking=True)
         lines: list[str] = []
         for config in self._registry.all:
@@ -132,6 +160,12 @@ class MothmanCommandHandler:
         await interaction.followup.send("\n".join(lines), ephemeral=True)
 
     async def thread(self, interaction: discord.Interaction, thread_url_or_id: str) -> None:
+        """Sync one forum thread by id or URL.
+
+        Args:
+            interaction (discord.Interaction): The Discord interaction.
+            thread_url_or_id (str): The URL or ID of the thread to sync.
+        """
         await interaction.response.defer(ephemeral=True, thinking=True)
         thread = await self._fetch_thread(interaction.client, thread_url_or_id)
         if thread.parent_id is None:
@@ -154,6 +188,11 @@ class MothmanCommandHandler:
         )
 
     async def export(self, interaction: discord.Interaction) -> None:
+        """Export configured forums to Sheets.
+
+        Args:
+            interaction (discord.Interaction): The Discord interaction.
+        """
         await interaction.response.defer(ephemeral=True, thinking=True)
         lines: list[str] = []
         for config in self._registry.all:
@@ -177,6 +216,11 @@ class MothmanCommandHandler:
         await interaction.followup.send("\n".join(lines), ephemeral=True)
 
     async def status(self, interaction: discord.Interaction) -> None:
+        """Show configured forum status.
+
+        Args:
+            interaction (discord.Interaction): The Discord interaction.
+        """
         lines = [
             format_bot_message(
                 self._msg.status_line,
@@ -194,6 +238,11 @@ class MothmanCommandHandler:
         await interaction.response.send_message("\n".join(lines), ephemeral=True)
 
     async def fairy(self, interaction: discord.Interaction) -> None:
+        """Summon the fairy!!!!! Kill them all!!!!!
+
+        Args:
+            interaction (discord.Interaction): The Discord interaction.
+        """
         await interaction.response.send_message(
             format_bot_message(self._msg.fairy),
         )
@@ -203,6 +252,12 @@ class MothmanCommandHandler:
         interaction: discord.Interaction,
         forum_channel: discord.ForumChannel,
     ) -> None:
+        """Enable Sheets sync for a forum.
+
+        Args:
+            interaction (discord.Interaction): The Discord interaction.
+            forum_channel (discord.ForumChannel): The forum channel to enable Sheets sync for.
+        """
         await interaction.response.defer(ephemeral=True, thinking=True)
         config = self._registry.get_by_channel_id(forum_channel.id)
         if not config.forum.sheets.configured:
@@ -235,6 +290,12 @@ class MothmanCommandHandler:
         interaction: discord.Interaction,
         forum_channel: discord.ForumChannel,
     ) -> None:
+        """Disable Sheets sync for a forum.
+
+        Args:
+            interaction (discord.Interaction): The Discord interaction.
+            forum_channel (discord.ForumChannel): The forum channel to disable Sheets sync for.
+        """
         config = self._registry.get_by_channel_id(forum_channel.id)
         config.forum.sheets.enabled = False
         self._store.set_sheets_enabled(config.forum.key, False)
@@ -249,6 +310,13 @@ class MothmanCommandHandler:
         forum_channel: discord.ForumChannel,
         feature: AutomationFeature = AutomationFeature.ALL,
     ) -> None:
+        """Enable automation for a forum.
+
+        Args:
+            interaction (discord.Interaction): The Discord interaction.
+            forum_channel (discord.ForumChannel): The forum channel to enable automation for.
+            feature (AutomationFeature): The feature to enable automation for.
+        """
         config = self._registry.get_by_channel_id(forum_channel.id)
         self._set_automation_feature(config, feature, True)
         self._store.set_automation_enabled(config.forum.key, feature, True)
@@ -266,6 +334,13 @@ class MothmanCommandHandler:
         forum_channel: discord.ForumChannel,
         feature: AutomationFeature = AutomationFeature.ALL,
     ) -> None:
+        """Disable automation for a forum.
+
+        Args:
+            interaction (discord.Interaction): The Discord interaction.
+            forum_channel (discord.ForumChannel): The forum channel to disable automation for.
+            feature (AutomationFeature): The feature to disable automation for.
+        """
         config = self._registry.get_by_channel_id(forum_channel.id)
         self._set_automation_feature(config, feature, False)
         self._store.set_automation_enabled(config.forum.key, feature, False)
@@ -278,6 +353,12 @@ class MothmanCommandHandler:
         )
 
     async def close(self, interaction: discord.Interaction, thread_url_or_id: str) -> None:
+        """Lock and archive a thread by id or URL.
+
+        Args:
+            interaction (discord.Interaction): The Discord interaction.
+            thread_url_or_id (str): The URL or ID of the thread to close.
+        """
         await interaction.response.defer(ephemeral=True, thinking=True)
         thread = await self._fetch_thread(interaction.client, thread_url_or_id)
         await thread.edit(archived=True, locked=True)
@@ -287,6 +368,12 @@ class MothmanCommandHandler:
         )
 
     async def reopen(self, interaction: discord.Interaction, thread_url_or_id: str) -> None:
+        """Unlock and unarchive a thread by id or URL.
+
+        Args:
+            interaction (discord.Interaction): The Discord interaction.
+            thread_url_or_id (str): The URL or ID of the thread to reopen.
+        """
         await interaction.response.defer(ephemeral=True, thinking=True)
         thread = await self._fetch_thread(interaction.client, thread_url_or_id)
         await thread.edit(archived=False, locked=False)
@@ -300,6 +387,15 @@ class MothmanCommandHandler:
         client: discord.Client,
         thread_url_or_id: str,
     ) -> discord.Thread:
+        """Fetch a Discord thread by id or URL.
+
+        Args:
+            client (discord.Client): The Discord client.
+            thread_url_or_id (str): The URL or ID of the thread to fetch.
+
+        Returns:
+            The Discord thread.
+        """
         thread_id = self._parse_thread_id(thread_url_or_id)
         channel = client.get_channel(thread_id)
         if channel is None:
@@ -310,6 +406,14 @@ class MothmanCommandHandler:
         return channel
 
     def _parse_thread_id(self, thread_url_or_id: str) -> int:
+        """Parse a thread id from a URL or ID.
+
+        Args:
+            thread_url_or_id (str): The URL or ID of the thread to parse.
+
+        Returns:
+            The thread id.
+        """
         normalized = thread_url_or_id.rstrip("/")
         last_part = normalized.rsplit("/", maxsplit=1)[-1]
         return int(last_part)
@@ -320,6 +424,13 @@ class MothmanCommandHandler:
         feature: AutomationFeature,
         enabled: bool,
     ) -> None:
+        """Set the automation feature.
+
+        Args:
+            config (ForumConfig): The forum configuration.
+            feature (AutomationFeature): The feature to set.
+            enabled (bool): Whether the feature is enabled.
+        """
         automation = config.forum.automation
         if feature == AutomationFeature.ALL:
             automation.enabled = enabled

@@ -1,3 +1,14 @@
+"""
+SQLite persistence for snapshots and per-forum feature flags.
+
+Database schema:
+    - forum_channels: Forum channel configurations.
+    - threads: Thread snapshots.
+    - feature_flags: Per-forum feature flags.
+    - sync_runs: Sync run history.
+
+#TODO Do we need to separate the schema into other files?
+"""
 import json
 import sqlite3
 from pathlib import Path
@@ -66,6 +77,11 @@ class SQLiteStore:
             )
 
     def upsert_forum(self, config: ForumConfig) -> None:
+        """Upsert the forum configuration into the database.
+
+        Args:
+            config (ForumConfig): The forum configuration.
+        """
         forum = config.forum
         with self._connect() as connection:
             connection.execute(
@@ -94,6 +110,12 @@ class SQLiteStore:
             )
 
     def upsert_thread(self, forum_key: str, snapshot: ThreadSnapshot) -> None:
+        """Upsert the thread snapshot into the database.
+
+        Args:
+            forum_key (str): The forum key.
+            snapshot (ThreadSnapshot): The thread snapshot.
+        """
         with self._connect() as connection:
             connection.execute(
                 """
@@ -144,6 +166,12 @@ class SQLiteStore:
             )
 
     def set_sheets_enabled(self, forum_key: str, enabled: bool) -> None:
+        """Set the Sheets sync enabled flag for a forum.
+
+        Args:
+            forum_key (str): The forum key.
+            enabled (bool): Whether Sheets sync is enabled.
+        """
         with self._connect() as connection:
             connection.execute(
                 "UPDATE forum_channels SET sheets_enabled = ? WHERE forum_key = ?",
@@ -151,6 +179,12 @@ class SQLiteStore:
             )
 
     def set_spreadsheet_id(self, forum_key: str, spreadsheet_id: str) -> None:
+        """Set the spreadsheet id for a forum.
+
+        Args:
+            forum_key (str): The forum key.
+            spreadsheet_id (str): The spreadsheet id.
+        """
         with self._connect() as connection:
             connection.execute(
                 "UPDATE forum_channels SET spreadsheet_id = ? WHERE forum_key = ?",
@@ -163,6 +197,13 @@ class SQLiteStore:
         feature: AutomationFeature,
         enabled: bool,
     ) -> None:
+        """Set the automation enabled flag for a forum.
+
+        Args:
+            forum_key (str): The forum key.
+            feature (AutomationFeature): The feature to enable.
+            enabled (bool): Whether the feature is enabled.
+        """
         with self._connect() as connection:
             connection.execute(
                 """
@@ -176,11 +217,14 @@ class SQLiteStore:
             )
 
     def get_runtime_flags(self, forum_key: str) -> dict[str, bool]:
-        """
-        Load persisted runtime flags for a forum.
+        """Load persisted runtime flags for a forum.
 
-        Returns a dict with keys like ``sheets_enabled``, ``automation_enabled``,
-        ``auto_comment``, etc. Missing keys mean no override was saved.
+        Args:
+            forum_key (str): The forum key.
+
+        Returns:
+            A dict with keys like ``sheets_enabled``, ``automation_enabled``,
+            ``auto_comment``, etc. Missing keys mean no override was saved.
         """
         result: dict[str, bool] = {}
         with self._connect() as connection:
@@ -215,6 +259,15 @@ class SQLiteStore:
         exported: int,
         errors: list[str],
     ) -> None:
+        """Record a sync run.
+
+        Args:
+            forum_key (str): The forum key.
+            fetched (int): The number of threads fetched.
+            stored (int): The number of threads stored.
+            exported (int): The number of threads exported.
+            errors (list[str]): The list of errors.
+        """
         with self._connect() as connection:
             connection.execute(
                 """
@@ -233,4 +286,9 @@ class SQLiteStore:
             )
 
     def _connect(self) -> sqlite3.Connection:
+        """Connect to the SQLite database.
+
+        Returns:
+            The SQLite connection.
+        """
         return sqlite3.connect(self._database_path)

@@ -25,6 +25,12 @@ class SheetExporter:
         self._sheets = google_clients.sheets
 
     def upsert_master_row(self, config: ForumConfig, snapshot: ThreadSnapshot) -> None:
+        """Upsert the master row for the thread snapshot.
+
+        Args:
+            config (ForumConfig): The forum configuration.
+            snapshot (ThreadSnapshot): The thread snapshot.
+        """
         spreadsheet_id = config.forum.sheets.spreadsheet_id
         if not spreadsheet_id:
             msg = f"Spreadsheet id is not set for forum {config.forum.key}."

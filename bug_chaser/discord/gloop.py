@@ -39,12 +39,28 @@ class GloopSnapshotBuilder:
         )
 
     async def _fetch_starter_message(self, thread: discord.Thread) -> discord.Message | None:
+        """Fetch the starter message for the thread.
+
+        Args:
+            thread (discord.Thread): The thread to fetch the starter message for.
+
+        Returns:
+            The starter message for the thread, or None if the starter message is not found.
+        """
         try:
             return await thread.fetch_message(thread.id)
         except discord.NotFound:
             return None
 
     def _available_forum_tags(self, thread: discord.Thread) -> tuple[str, ...] | None:
+        """Get the available forum tags for the thread.
+
+        Args:
+            thread (discord.Thread): The thread to get the available forum tags for.
+
+        Returns:
+            A tuple of available forum tags, or None if the thread has no parent forum.
+        """
         parent = thread.parent
         if not isinstance(parent, discord.ForumChannel):
             return None

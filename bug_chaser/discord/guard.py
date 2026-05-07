@@ -30,6 +30,14 @@ logger = logging.getLogger(__name__)
 
 
 def action_name_for_status(status: str) -> str | None:
+    """Get the action name for the status.
+
+    Args:
+        status (str): The status to get the action name for.
+
+    Returns:
+        The action name for the status, or None if the status is not a valid status.
+    """
     if status in (ThreadStatus.OPEN.value, ThreadStatus.UNKNOWN.value):
         return None
     return f"when_{status}"
@@ -40,6 +48,16 @@ def action_name_for_added_tags(
     before_tags: tuple[str, ...],
     after_tags: tuple[str, ...],
 ) -> str | None:
+    """Get the action name for the added tags.
+
+    Args:
+        config (ForumConfig): The forum configuration.
+        before_tags (tuple[str, ...]): The tags before the update.
+        after_tags (tuple[str, ...]): The tags after the update.
+
+    Returns:
+        The action name for the added tags, or None if there are no added tags.
+    """
     added_tags = set(after_tags) - set(before_tags)
     if not added_tags:
         return None
@@ -52,6 +70,15 @@ def action_name_for_added_tags(
 
 
 def should_apply_status_action(before_status: str, after_status: str) -> bool:
+    """Check if the status action should be applied.
+
+    Args:
+        before_status (str): The status before the update.
+        after_status (str): The status after the update.
+
+    Returns:
+        True if the status action should be applied, False otherwise.
+    """
     return before_status != after_status and action_name_for_status(after_status) is not None
 
 
@@ -63,6 +90,14 @@ class GuardRobotGateway(discord.Client):
         store: SQLiteStore,
         bot_messages: BotMessages | None = None,
     ) -> None:
+        """Initialize the Discord Gateway.
+
+        Args:
+            settings (AppSettings): The application settings.
+            configs (list[ForumConfig]): The forum configurations.
+            store (SQLiteStore): The SQLite store.
+            bot_messages (BotMessages | None): The bot messages.
+        """
         intents = discord.Intents.default()
         intents.message_content = True
         intents.guilds = True
@@ -82,6 +117,8 @@ class GuardRobotGateway(discord.Client):
         self._bot_messages = bot_messages or BotMessages()
 
     async def setup_hook(self) -> None:
+        """Setup the Discord Gateway.
+        """
         collector = ShadowBirdCollector(self)
         sheet_exporter = (
             SheetExporter(self._google_clients)
@@ -118,6 +155,8 @@ class GuardRobotGateway(discord.Client):
             await self.tree.sync()
 
     async def on_ready(self) -> None:
+        """Handle the Discord Gateway ready event.
+        """
         if not self._startup_initialized:
             try:
                 await assert_configured_tags_exist_on_forums(self, self._registry.all)
@@ -132,6 +171,11 @@ class GuardRobotGateway(discord.Client):
         logger.info("bug-chaser logged in as %s", self.user)
 
     async def on_guild_join(self, guild: discord.Guild) -> None:
+        """Handle the Guild Join event.
+
+        Args:
+            guild (discord.Guild): The guild that the bot joined.
+        """
         gj = self._bot_messages.guild_join
         if not gj.enabled or not gj.message.strip():
             return
@@ -183,6 +227,12 @@ class GuardRobotGateway(discord.Client):
             )
 
     async def on_thread_update(self, before: discord.Thread, after: discord.Thread) -> None:
+        """Handle the Thread Update event.
+
+        Args:
+            before (discord.Thread): The thread before the update.
+            after (discord.Thread): The thread after the update.
+        """
         await self._maybe_apply_automation(before, after)
 
     async def _maybe_apply_automation(
@@ -190,6 +240,12 @@ class GuardRobotGateway(discord.Client):
         before: discord.Thread,
         after: discord.Thread,
     ) -> None:
+        """Maybe apply automation to the thread.
+
+        Args:
+            before (discord.Thread): The thread before the update.
+            after (discord.Thread): The thread after the update.
+        """
         if after.parent_id is None:
             return
         try:
@@ -215,6 +271,14 @@ class GuardRobotGateway(discord.Client):
             await self._thread_manager.apply_action(config, after, action_name)
 
     def _build_thread_update_snapshot(self, thread: discord.Thread) -> ThreadSnapshot:
+        """Build a thread update snapshot.
+
+        Args:
+            thread (discord.Thread): The thread to build the snapshot for.
+
+        Returns:
+            A thread update snapshot.
+        """
         parent = thread.parent
         available_tags = (
             tuple(tag.name for tag in parent.available_tags)
@@ -237,6 +301,14 @@ class GuardRobotGateway(discord.Client):
         )
 
     def _build_google_clients(self, settings: AppSettings) -> GoogleClients | None:
+        """Build Google clients.
+
+        Args:
+            settings (AppSettings): The application settings.
+
+        Returns:
+            Google clients, or None if the Google service account file is not set.
+        """
         if settings.google_service_account_file is None:
             return None
         return GoogleClients(settings.google_service_account_file)

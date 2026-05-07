@@ -1,3 +1,6 @@
+"""
+Main entry point for bug-chaser.
+"""
 import logging
 
 from bug_chaser.config.bot_messages import load_bot_messages
@@ -9,7 +12,12 @@ from bug_chaser.storage.sqlite_store import SQLiteStore
 
 
 def _restore_runtime_flags(store: SQLiteStore, config: ForumConfig) -> None:
-    """Override YAML values with flags persisted via commands."""
+    """Override YAML values with flags persisted via commands.
+
+    Args:
+        store (SQLiteStore): The SQLite store.
+        config (ForumConfig): The forum configuration.
+    """
     flags = store.get_runtime_flags(config.forum.key)
     if not flags:
         return
@@ -29,6 +37,7 @@ def _restore_runtime_flags(store: SQLiteStore, config: ForumConfig) -> None:
 
 
 def main() -> None:
+    """Main entry point func for bug-chaser."""
     logging.basicConfig(
         level=logging.INFO,
         format="%(asctime)s %(levelname)s %(name)s: %(message)s",

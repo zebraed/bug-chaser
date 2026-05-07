@@ -10,6 +10,15 @@ class RuleEngine:
     """Evaluates forum-specific tag rules."""
 
     def evaluate(self, config: ForumConfig, snapshot: ThreadSnapshot) -> str:
+        """Evaluate the thread snapshot and return the state id.
+
+        Args:
+            config (ForumConfig): The forum configuration.
+            snapshot (ThreadSnapshot): The thread snapshot.
+
+        Returns:
+            The state id.
+        """
         tag_set = set(snapshot.tags)
 
         if not config.state_order:
@@ -30,6 +39,13 @@ class RuleEngine:
         return ThreadStatus.OPEN.value
 
     def _matches_tags(self, config: ForumConfig, state_name: str, tag_set: set[str]) -> bool:
+        """Check if the state matches the thread tags.
+
+        Args:
+            config (ForumConfig): The forum configuration.
+            state_name (str): The name of the state to check.
+            tag_set (set[str]): The set of tags to check.
+        """
         rule = config.states.get(state_name)
         if rule is None:
             return False

@@ -1,3 +1,6 @@
+"""
+Service for syncing forums.
+"""
 from dataclasses import replace
 
 import discord
@@ -12,6 +15,7 @@ from bug_chaser.storage.sqlite_store import SQLiteStore
 
 
 class SyncService:
+    """Service for syncing forums."""
     def __init__(
         self,
         collector: ShadowBirdCollector,
@@ -20,6 +24,15 @@ class SyncService:
         store: SQLiteStore,
         sheet_exporter: SheetExporter | None = None,
     ) -> None:
+        """Initialize the sync service.
+
+        Args:
+            collector (ShadowBirdCollector): The collector for threads.
+            snapshot_builder (GloopSnapshotBuilder): The builder for thread snapshots.
+            rule_engine (RuleEngine): The engine for evaluating thread states.
+            store (SQLiteStore): The store for storing thread snapshots.
+            sheet_exporter (SheetExporter | None): The exporter for exporting thread snapshots to Sheets.
+        """
         self._collector = collector
         self._snapshot_builder = snapshot_builder
         self._rule_engine = rule_engine
@@ -27,6 +40,15 @@ class SyncService:
         self._sheet_exporter = sheet_exporter
 
     async def sync_forum(self, config: ForumConfig, *, dry_run: bool = False) -> SyncResult:
+        """Sync a forum.
+
+        Args:
+            config (ForumConfig): The forum configuration.
+            dry_run (bool): Whether to perform the sync operation or not.
+
+        Returns:
+            The result of the sync operation.
+        """
         forum = config.forum
         errors: list[str] = []
         exported = 0
@@ -77,6 +99,16 @@ class SyncService:
         *,
         dry_run: bool = False,
     ) -> SyncResult:
+        """Sync a thread.
+
+        Args:
+            config (ForumConfig): The forum configuration.
+            thread (discord.Thread): The thread to sync.
+            dry_run (bool): Whether to perform the sync operation or not.
+
+        Returns:
+            The result of the sync operation.
+        """
         errors: list[str] = []
         exported = 0
         stored = 0

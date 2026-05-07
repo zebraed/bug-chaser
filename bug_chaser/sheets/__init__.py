@@ -1,1 +1,0 @@
-"""Optional Google Sheets integration."""

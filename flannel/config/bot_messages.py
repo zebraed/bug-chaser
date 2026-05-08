@@ -21,6 +21,28 @@ def format_bot_message(template: str, **kwargs: object) -> str:
 
 
 class CommandStrings(BaseModel):
+    """Base model for command strings.
+
+    Attributes:
+        run_line: The line to display when the run command is used.
+        run_empty: The line to display when no forums are configured.
+        channel_result: The line to display when the channel command is used.
+        dry_run_line: The line to display when the dry-run command is used.
+        thread_no_parent: The line to display when the thread command is used and the target thread has no parent forum.
+        thread_result: The line to display when the thread command is used and the target thread has a parent forum.
+        export_sheets_disabled: The line to display when the export command is used and Sheets is disabled.
+        export_line: The line to display when the export command is used and Sheets is enabled.
+        status_line: The line to display when the status command is used.
+        fairy: The line to display when the fairy command is used.
+        sheets_not_configured: The line to display when Sheets is not configured.
+        sheets_no_service_account: The line to display when the Google Service Account is not configured.
+        sheets_enabled: The line to display when Sheets is enabled.
+        sheets_disabled: The line to display when Sheets is disabled.
+        automation_enabled: The line to display when the automation is enabled.
+        automation_disabled: The line to display when the automation is disabled.
+        thread_closed: The line to display when the thread is closed.
+        thread_reopened: The line to display when the thread is reopened.
+    """
     model_config = ConfigDict(extra="forbid")
 
     run_line: str = (
@@ -51,6 +73,9 @@ class CommandStrings(BaseModel):
     automation_disabled: str = "Automation disabled: {feature}"
     thread_closed: str = "Thread closed."
     thread_reopened: str = "Thread reopened."
+    help_title: str = "Available Commands"
+    help_description: str = "Forum automation and synchronization"
+    help_footer: str = "Use /help [command] for more details"
 
 
 class GuildJoinStrings(BaseModel):
@@ -75,6 +100,14 @@ class BotMessages(BaseModel):
 
 
 def load_bot_messages(settings: AppSettings) -> BotMessages:
+    """Load bot messages from the specified file or the default file.
+
+    Args:
+        settings (AppSettings): The application settings.
+
+    Returns:
+        BotMessages: Bot messages model.
+    """
     if settings.bot_messages_file is not None:
         path = settings.bot_messages_file
         if not path.is_file():

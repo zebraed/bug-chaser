@@ -1,5 +1,7 @@
 """
 Startup checks: YAML tag names must exist on the parent forum channel.
+
+# TODO: Merge this code to other optimal file.
 """
 import discord
 

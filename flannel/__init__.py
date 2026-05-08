@@ -1,4 +1,5 @@
-"""flannel Discord bot package."""
+"""flannel Discord bot package.
+"""
 
 __all__ = ["__version__"]
 __author__ = "zebraed"

@@ -118,7 +118,22 @@ class GuardRobotGateway(discord.Client):
 
     async def setup_hook(self) -> None:
         """Setup the Discord Gateway.
+        Override the default setup hook to add the command tree.
         """
+        # set default activity TODO: Move this to settings?
+        activity = discord.Game(name="flannel | /help")
+        await self.change_presence(activity=activity)
+
+        # Register top-level /help command
+        @app_commands.command(name="help", description="Show available commands")
+        async def help_cmd(
+            interaction: discord.Interaction,
+            command: str | None = None,
+        ) -> None:
+            await self._show_help(interaction, command)
+
+        self.tree.add_command(help_cmd)
+
         collector = ShadowBirdCollector(self)
         sheet_exporter = (
             SheetExporter(self._google_clients)
@@ -477,3 +492,129 @@ class GuardRobotGateway(discord.Client):
         if settings.google_service_account_file is None:
             return None
         return GoogleClients(settings.google_service_account_file)
+
+    async def _show_help(
+        self,
+        interaction: discord.Interaction,
+        command: str | None = None,
+    ) -> None:
+        """Show help for all commands or a specific command.
+
+        Args:
+            interaction (discord.Interaction): The Discord interaction.
+            command (str | None): Specific command to get help for.
+        """
+        if command:
+            await self._send_command_help(interaction, command)
+        else:
+            await self._send_all_help(interaction)
+
+    async def _send_all_help(self, interaction: discord.Interaction) -> None:
+        """Send help for all commands."""
+        embed = discord.Embed(
+            title="flannel - Forum Automation Bot",
+            description="All available commands",
+            color=discord.Color.blue(),
+        )
+
+        commands = [
+            ("**Core Commands**", ""),
+            ("/flannel run", "Sync all configured forums"),
+            ("/flannel channel", "Sync one forum channel"),
+            ("/flannel thread", "Sync one thread by id or URL"),
+            ("/flannel dry-run", "Preview sync without changes"),
+            ("/flannel status", "Show forum status"),
+            ("**Export & Management**", ""),
+            ("/flannel export", "Export forums to Sheets"),
+            ("/flannel close", "Lock and archive a thread"),
+            ("/flannel reopen", "Unlock and unarchive a thread"),
+            ("**Configuration**", ""),
+            ("/flannel sheets on/off", "Enable/disable Sheets sync"),
+            ("/flannel automation on/off", "Enable/disable automation"),
+            ("**Easter Eggs**", ""),
+            ("/flannel fairy", "Summon the fairy"),
+        ]
+
+        for cmd_name, cmd_desc in commands:
+            if cmd_desc == "":
+                embed.add_field(name=cmd_name, value="", inline=False)
+            else:
+                embed.add_field(name=cmd_name, value=cmd_desc, inline=False)
+
+        embed.set_footer(text="Use /help [command] for more details")
+        await interaction.response.send_message(embed=embed, ephemeral=True)
+
+    async def _send_command_help(
+        self,
+        interaction: discord.Interaction,
+        command: str,
+    ) -> None:
+        """Send help for a specific command.
+
+        Args:
+            interaction (discord.Interaction): Discord interaction.
+            command (str): The command to send help for.
+        """
+        help_texts = {
+            "run": (
+                "**Sync all configured forums**\n\n"
+                "```\n/flannel run\n```\n\n"
+                "Immediately synchronizes all configured forums with the google spreadsheet."
+            ),
+            "channel": (
+                "**Sync one forum channel**\n\n"
+                "```\n/flannel channel <forum_channel>\n```\n\n"
+                "Syncs a specific forum channel. Select the channel from the dropdown."
+            ),
+            "thread": (
+                "**Sync one thread**\n\n"
+                "```\n/flannel thread <thread_url_or_id>\n```\n\n"
+                "Syncs a specific forum thread by its URL or ID.\n"
+                "Example: `https://discord.com/channels/...`"
+            ),
+            "dry-run": (
+                "**Preview sync without writing changes**\n\n"
+                "```\n/flannel dry-run\n```\n\n"
+                "Shows what would be synced without actually making changes."
+            ),
+            "status": (
+                "**Show forum status**\n\n"
+                "```\n/flannel status\n```\n\n"
+                "Displays the current configuration and status of all forums."
+            ),
+            "export": (
+                "**Export forums to Sheets**\n\n"
+                "```\n/flannel export\n```\n\n"
+                "Exports all configured forums to Google Sheets."
+            ),
+            "close": (
+                "**Close a thread**\n\n"
+                "```\n/flannel close <thread_url_or_id>\n```\n\n"
+                "Locks and archives a forum thread."
+            ),
+            "reopen": (
+                "**Reopen a thread**\n\n"
+                "```\n/flannel reopen <thread_url_or_id>\n```\n\n"
+                "Unlocks and unarchives a forum thread."
+            ),
+            "sheets": (
+                "**Manage Sheets sync**\n\n"
+                "```\n/flannel sheets on <channel>\n/flannel sheets off <channel>\n```\n\n"
+                "Enable or disable Google Sheets synchronization for a forum."
+            ),
+            "automation": (
+                "**Manage automation**\n\n"
+                "```\n/flannel automation on <channel>\n/flannel automation off <channel>\n```\n\n"
+                "Enable or disable Discord-side forum management automation (tagging, archiving, etc.)"
+            ),
+        }
+
+        description = help_texts.get(command, "Command not found.")
+
+        embed = discord.Embed(
+            title=f"Help: {command}",
+            description=description,
+            color=discord.Color.green(),
+        )
+
+        await interaction.response.send_message(embed=embed, ephemeral=True)

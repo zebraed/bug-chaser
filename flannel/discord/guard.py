@@ -120,10 +120,6 @@ class GuardRobotGateway(discord.Client):
         """Setup the Discord Gateway.
         Override the default setup hook to add the command tree.
         """
-        # set default activity TODO: Move this to settings?
-        activity = discord.Game(name="flannel | /help")
-        await self.change_presence(activity=activity)
-
         # Register top-level /help command
         @app_commands.command(name="help", description="Show available commands")
         async def help_cmd(
@@ -189,6 +185,11 @@ class GuardRobotGateway(discord.Client):
             if self._scheduler is not None:
                 self._scheduler.start()
             await self._send_pending_guild_join_messages()
+
+            # set default activity after websocket is ready
+            # TODO: Move this to settings?
+            activity = discord.Game(name="flannel | /help")
+            await self.change_presence(activity=activity)
 
         logger.info("flannel logged in as %s", self.user)
 

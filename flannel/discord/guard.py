@@ -22,6 +22,7 @@ from flannel.rules.engine import RuleEngine
 from flannel.sheets.exporter import SheetExporter
 from flannel.sheets.google import GoogleClients
 from flannel.sheets.provisioner import SpreadsheetProvisioner
+from flannel.health import start_health_server
 from flannel.storage.sqlite_store import SQLiteStore
 from flannel.sync.scheduler import FlannelScheduler
 from flannel.sync.service import SyncService
@@ -170,6 +171,9 @@ class GuardRobotGateway(discord.Client):
                 )
         else:
             await self.tree.sync()
+
+        if self._settings.health_port is not None:
+            await start_health_server(self, self._settings.health_port)
 
     async def on_ready(self) -> None:
         """Handle the Discord Gateway ready event.

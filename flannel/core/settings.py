@@ -34,6 +34,10 @@ class AppSettings(BaseSettings):
         default=None,
         alias="FLANNEL_LOG_FILE",
     )
+    health_port: int | None = Field(
+        default=None,
+        alias="FLANNEL_HEALTH_PORT",
+    )
 
     model_config = SettingsConfigDict(env_file=".env", extra="ignore")
 

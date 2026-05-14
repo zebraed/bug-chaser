@@ -1,6 +1,6 @@
 # flannel-bot
 
-<img height="300" alt="ふらんねる線画3" src="https://github.com/user-attachments/assets/20244ffb-6e27-4e4e-8c51-6979fe30604f" />
+<img width="300" alt="huranneru_mushitori" src="https://github.com/user-attachments/assets/e8420aef-0653-4ee6-94ea-4cde05c69637" />
 
 *ぼく、ふらんねる！ もぐもぐ*
 
@@ -239,3 +239,19 @@ Botが有効なチャンネルで以下のコマンドが使用可能です。
 ## ライセンス
 
 [MIT License](LICENSE)
+
+The source code of this project is licensed under the MIT License.
+
+The icon and concept artwork is not covered by the source code license and remains the property of its respective artist.
+
+## クレジット
+
+<img height="300" alt="ふらんねる線画3" src="https://github.com/user-attachments/assets/20244ffb-6e27-4e4e-8c51-6979fe30604f" />
+
+- Bot development: zebraed
+- Icon and concept artwork: uma
+- Original character creator: aediorugap (*Yume 2kki*)
+
+This is an unofficial fan-made Discord bot.
+It is not affiliated with, endorsed by, or officially maintained by the *Yume 2kki* development team or the original map creator.
+

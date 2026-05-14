@@ -13,6 +13,7 @@ Database schema:
 """
 import json
 import sqlite3
+from datetime import datetime
 from pathlib import Path
 
 from flannel.config.forum import ForumConfig
@@ -41,8 +42,7 @@ class SQLiteStore:
 
                 CREATE TABLE IF NOT EXISTS threads (
                     thread_id INTEGER PRIMARY KEY,
-                    forum_key TEXT NOT NULL,
-                    forum_channel_id INTEGER NOT NULL,
+                    forum_key TEXT NOT NULL REFERENCES forum_channels(forum_key),
                     title TEXT NOT NULL,
                     body TEXT NOT NULL,
                     author_id INTEGER,
@@ -55,30 +55,30 @@ class SQLiteStore:
                     archived INTEGER NOT NULL,
                     locked INTEGER NOT NULL,
                     status TEXT NOT NULL,
-                    last_synced_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP
+                    last_synced_at TEXT NOT NULL
                 );
 
                 CREATE TABLE IF NOT EXISTS feature_flags (
-                    forum_key TEXT NOT NULL,
+                    forum_key TEXT NOT NULL REFERENCES forum_channels(forum_key),
                     feature TEXT NOT NULL,
                     enabled INTEGER NOT NULL,
-                    updated_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,
+                    updated_at TEXT NOT NULL,
                     PRIMARY KEY (forum_key, feature)
                 );
 
                 CREATE TABLE IF NOT EXISTS sync_runs (
                     id INTEGER PRIMARY KEY AUTOINCREMENT,
-                    forum_key TEXT NOT NULL,
+                    forum_key TEXT NOT NULL REFERENCES forum_channels(forum_key),
                     fetched INTEGER NOT NULL,
                     stored INTEGER NOT NULL,
                     exported INTEGER NOT NULL,
                     errors_json TEXT NOT NULL,
-                    created_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP
+                    created_at TEXT NOT NULL
                 );
 
                 CREATE TABLE IF NOT EXISTS guild_join_messages (
                     guild_id INTEGER PRIMARY KEY,
-                    sent_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP
+                    sent_at TEXT NOT NULL
                 );
 
                 CREATE TABLE IF NOT EXISTS guild_join_pending (
@@ -87,6 +87,75 @@ class SQLiteStore:
                 );
                 """
             )
+            self._migrate(connection)
+
+    def _migrate(self, connection: sqlite3.Connection) -> None:
+        """Migrate legacy schema: drop forum_channel_id from threads and add FK constraints."""
+        cols = {row[1] for row in connection.execute("PRAGMA table_info(threads)")}
+        if "forum_channel_id" not in cols:
+            return
+        connection.executescript(
+            """
+            PRAGMA foreign_keys = OFF;
+            BEGIN;
+
+            CREATE TABLE threads_new (
+                thread_id INTEGER PRIMARY KEY,
+                forum_key TEXT NOT NULL REFERENCES forum_channels(forum_key),
+                title TEXT NOT NULL,
+                body TEXT NOT NULL,
+                author_id INTEGER,
+                author_name TEXT,
+                created_at TEXT,
+                tags_json TEXT NOT NULL,
+                reactions_json TEXT NOT NULL,
+                reply_count INTEGER NOT NULL,
+                url TEXT,
+                archived INTEGER NOT NULL,
+                locked INTEGER NOT NULL,
+                status TEXT NOT NULL,
+                last_synced_at TEXT NOT NULL
+            );
+            INSERT INTO threads_new
+                SELECT thread_id, forum_key, title, body, author_id, author_name,
+                       created_at, tags_json, reactions_json, reply_count, url,
+                       archived, locked, status, last_synced_at
+                FROM threads;
+            DROP TABLE threads;
+            ALTER TABLE threads_new RENAME TO threads;
+
+            CREATE TABLE sync_runs_new (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                forum_key TEXT NOT NULL REFERENCES forum_channels(forum_key),
+                fetched INTEGER NOT NULL,
+                stored INTEGER NOT NULL,
+                exported INTEGER NOT NULL,
+                errors_json TEXT NOT NULL,
+                created_at TEXT NOT NULL
+            );
+            INSERT INTO sync_runs_new SELECT * FROM sync_runs;
+            DROP TABLE sync_runs;
+            ALTER TABLE sync_runs_new RENAME TO sync_runs;
+
+            CREATE TABLE feature_flags_new (
+                forum_key TEXT NOT NULL REFERENCES forum_channels(forum_key),
+                feature TEXT NOT NULL,
+                enabled INTEGER NOT NULL,
+                updated_at TEXT NOT NULL,
+                PRIMARY KEY (forum_key, feature)
+            );
+            INSERT INTO feature_flags_new SELECT * FROM feature_flags;
+            DROP TABLE feature_flags;
+            ALTER TABLE feature_flags_new RENAME TO feature_flags;
+
+            COMMIT;
+            PRAGMA foreign_keys = ON;
+            """
+        )
+
+    def _now(self) -> str:
+        """Return current local time as ISO 8601 string with timezone offset."""
+        return datetime.now().astimezone().isoformat(timespec="seconds")
 
     def upsert_forum(self, config: ForumConfig) -> None:
         """Upsert the forum configuration into the database.
@@ -132,9 +201,10 @@ class SQLiteStore:
             connection.execute(
                 """
                 INSERT INTO threads (
-                    thread_id, forum_key, forum_channel_id, title, body,
+                    thread_id, forum_key, title, body,
                     author_id, author_name, created_at, tags_json,
-                    reactions_json, reply_count, url, archived, locked, status
+                    reactions_json, reply_count, url, archived, locked, status,
+                    last_synced_at
                 )
                 VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
                 ON CONFLICT(thread_id) DO UPDATE SET
@@ -150,12 +220,11 @@ class SQLiteStore:
                     archived = excluded.archived,
                     locked = excluded.locked,
                     status = excluded.status,
-                    last_synced_at = CURRENT_TIMESTAMP
+                    last_synced_at = excluded.last_synced_at
                 """,
                 (
                     snapshot.thread_id,
                     forum_key,
-                    snapshot.forum_channel_id,
                     snapshot.title,
                     snapshot.body,
                     snapshot.author_id,
@@ -174,6 +243,7 @@ class SQLiteStore:
                     int(snapshot.archived),
                     int(snapshot.locked),
                     snapshot.status,
+                    self._now(),
                 ),
             )
 
@@ -219,13 +289,13 @@ class SQLiteStore:
         with self._connect() as connection:
             connection.execute(
                 """
-                INSERT INTO feature_flags (forum_key, feature, enabled)
-                VALUES (?, ?, ?)
+                INSERT INTO feature_flags (forum_key, feature, enabled, updated_at)
+                VALUES (?, ?, ?, ?)
                 ON CONFLICT(forum_key, feature) DO UPDATE SET
                     enabled = excluded.enabled,
-                    updated_at = CURRENT_TIMESTAMP
+                    updated_at = excluded.updated_at
                 """,
-                (forum_key, feature.value, int(enabled)),
+                (forum_key, feature.value, int(enabled), self._now()),
             )
 
     def get_runtime_flags(self, forum_key: str) -> dict[str, bool]:
@@ -284,9 +354,9 @@ class SQLiteStore:
             connection.execute(
                 """
                 INSERT INTO sync_runs (
-                    forum_key, fetched, stored, exported, errors_json
+                    forum_key, fetched, stored, exported, errors_json, created_at
                 )
-                VALUES (?, ?, ?, ?, ?)
+                VALUES (?, ?, ?, ?, ?, ?)
                 """,
                 (
                     forum_key,
@@ -294,6 +364,7 @@ class SQLiteStore:
                     stored,
                     exported,
                     json.dumps(errors, ensure_ascii=False),
+                    self._now(),
                 ),
             )
 
@@ -315,11 +386,11 @@ class SQLiteStore:
         with self._connect() as connection:
             connection.execute(
                 """
-                INSERT INTO guild_join_messages (guild_id)
-                VALUES (?)
+                INSERT INTO guild_join_messages (guild_id, sent_at)
+                VALUES (?, ?)
                 ON CONFLICT(guild_id) DO NOTHING
                 """,
-                (guild_id,),
+                (guild_id, self._now()),
             )
             connection.execute(
                 "DELETE FROM guild_join_pending WHERE guild_id = ?",
@@ -361,9 +432,7 @@ class SQLiteStore:
             )
 
     def _connect(self) -> sqlite3.Connection:
-        """Connect to the SQLite database.
-
-        Returns:
-            The SQLite connection.
-        """
-        return sqlite3.connect(self._database_path)
+        """Connect to the SQLite database with foreign key enforcement enabled."""
+        conn = sqlite3.connect(self._database_path)
+        conn.execute("PRAGMA foreign_keys = ON")
+        return conn

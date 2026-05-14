@@ -81,6 +81,9 @@ def test_record_sync_run(tmp_path: Path) -> None:
     store = SQLiteStore(tmp_path / "db.sqlite3")
     store.initialize()
 
+    config = _minimal_config()
+    store.upsert_forum(config)
+
     store.record_sync_run(
         forum_key="test-forum",
         fetched=10,
